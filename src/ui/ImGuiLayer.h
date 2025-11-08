@@ -1,0 +1,28 @@
+/**
+ * @file ImGuiLayer.h
+ * @brief
+ * @date 11/9/2025
+ */
+
+#pragma once
+
+struct GLFWwindow;
+
+namespace RealmFortress
+{
+    /**
+     * @class ImGuiLayer
+     * @brief TODO: add brief description
+     *
+     * TODO: add detailed description
+     */
+    class ImGuiLayer
+    {
+    public:
+        ImGuiLayer(GLFWwindow* window);
+        ~ImGuiLayer();
+
+        void Begin();
+        void End();
+    };
+} // namespace RealmFortress
