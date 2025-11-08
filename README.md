@@ -1,4 +1,4 @@
-# Medieval Colony
+# Realm Fortress
 
 A cross-platform 3D medieval city-building simulation written in **C++23**, using **OpenGL**, **GLFW**, and **CMake**.
 

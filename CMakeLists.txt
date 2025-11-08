@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.21)
-project(MedievalColony LANGUAGES C CXX)
+project(RealmFortress LANGUAGES C CXX)
 
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -13,8 +13,8 @@ include(FetchContent)
 
 file(GLOB_RECURSE SRC_FILES CONFIGURE_DEPENDS src/*.cpp)
 
-add_executable(MedievalColony ${SRC_FILES})
+add_executable(RealmFortress ${SRC_FILES})
 
-target_include_directories(MedievalColony PRIVATE
+target_include_directories(RealmFortress PRIVATE
     src
 )

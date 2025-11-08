@@ -1,7 +1,7 @@
-option(MC_BUILD_EXAMPLES "Build example scenes" OFF)
-option(MC_ENABLE_IMGUI "Enable Dear Imgui UI" ON)
-option(MC_USE_ASSIMP "Use Assimp model importer" ON)
-option(MC_ENABLE_LOGGING "Enable logging output" ON)
+option(RF_BUILD_EXAMPLES "Build example scenes" OFF)
+option(RF_ENABLE_IMGUI "Enable Dear Imgui UI" ON)
+option(RF_USE_ASSIMP "Use Assimp model importer" ON)
+option(RF_ENABLE_LOGGING "Enable logging output" ON)
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
