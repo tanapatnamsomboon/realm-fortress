@@ -1,0 +1,31 @@
+* text=auto eol=lf
+
+*.cpp text
+*.h   text
+*.hpp text
+*.glsl text
+*.vert text
+*.frag text
+*.md  text
+*.cmake text
+*.txt text
+
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.bmp binary
+*.tga binary
+*.dds binary
+*.gif binary
+*.ico binary
+*.fbx binary
+*.obj binary
+*.blend binary
+*.wav binary
+*.mp3 binary
+*.ogg binary
+
+*.cmake diff=cmake
+CMakeLists.txt diff=cmake
+
+.gitattributes export-ignore

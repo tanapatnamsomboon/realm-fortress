@@ -1,0 +1,27 @@
+# Build and IDE
+/build/
+CMakeFiles/
+CMakeCache.txt
+compile_commands.json
+.idea/
+*.user
+*.sln
+*.vcxproj*
+*.code-workspace
+*.DS_Store
+
+# Binaries
+*.exe
+*.dll
+*.so
+*.dylib
+*.obj
+*.pdb
+*.log
+
+# Dependencies
+/_deps/
+external/*/build/
+
+# Assets cache
+assets/generated/
