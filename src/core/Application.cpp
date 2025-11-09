@@ -6,6 +6,7 @@
 
 #include "Application.h"
 #include "core/Window.h"
+#include "core/Time.h"
 #include "renderer/Shader.h"
 #include "scene/Camera.h"
 #include "scene/GridRenderer.h"
@@ -14,7 +15,6 @@
 #include <GLFW/glfw3.h>
 #include <glm/gtc/matrix_transform.hpp>
 #include <imgui.h>
-#include <chrono>
 
 namespace RealmFortress
 {
@@ -36,13 +36,9 @@ namespace RealmFortress
 
     void Application::Run()
     {
-        using clock = std::chrono::high_resolution_clock;
-        auto last = clock::now();
-
         while (!m_Window->ShouldClose()) {
-            auto now = clock::now();
-            float dt = std::chrono::duration<float>(now - last).count();
-            last = now;
+            Time::BeginFrame();
+            float dt = Time::Delta();
 
             // input
             auto* native = m_Window->GetNativeHandle();
