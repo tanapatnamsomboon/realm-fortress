@@ -15,4 +15,4 @@ namespace RealmFortress
         s_Delta = static_cast<float>(s_CurrentTime - s_LastTime);
         s_LastTime = s_CurrentTime;
     }
-} // RealmFortress
+} // namespace RealmFortress
