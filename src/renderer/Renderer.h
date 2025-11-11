@@ -22,5 +22,7 @@ namespace RealmFortress
         static void Init();
         static void Clear(const glm::vec3& color);
         static void Shutdown();
+
+        static void OnWindowResize(unsigned int width, unsigned int height);
     };
 } // namespace RealmFortress

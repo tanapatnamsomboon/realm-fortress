@@ -5,17 +5,29 @@
  */
 
 #include "Window.h"
+#include "events/Event.h"
+#include "events/ApplicationEvent.h"
+#include "events/MouseEvent.h"
 #include <glad/gl.h>
 #include <GLFW/glfw3.h>
 #include <stdexcept>
+#include <cassert>
 
 namespace RealmFortress
 {
-    Window::Window(int width, int height, const std::string& title)
-        : m_Width(width), m_Height(height)
+    Window::Window(const WindowProps& props)
     {
-        if (!glfwInit())
-            throw std::runtime_error("Failed to init GLFW");
+        Init(props);
+    }
+
+    void Window::Init(const WindowProps& props)
+    {
+        m_Data.Title = props.Title;
+        m_Data.Width = props.Width;
+        m_Data.Height = props.Height;
+
+        int success = glfwInit();
+        assert(success && "Could not initialize GLFW!");
 
         glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
         glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
@@ -24,31 +36,82 @@ namespace RealmFortress
         glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
 #   endif
 
-        m_Handle = glfwCreateWindow(width, height, title.c_str(), nullptr, nullptr);
-        if (!m_Handle)
+        m_Window = glfwCreateWindow(props.Width, props.Height, m_Data.Title.c_str(), nullptr, nullptr);
+        if (!m_Window)
         {
             glfwTerminate();
             throw std::runtime_error("Failed to create GLFW window");
         }
 
-        glfwMakeContextCurrent(m_Handle);
+        glfwMakeContextCurrent(m_Window);
 
         if (!gladLoadGL(glfwGetProcAddress))
             throw std::runtime_error("Failed to load GL with glad");
 
-        glfwSwapInterval(m_VSync);
+        glfwSetWindowUserPointer(m_Window, &m_Data);
+        SetVSync(true);
 
-        glViewport(0, 0, width, height);
-        glfwSetFramebufferSizeCallback(m_Handle, FramebufferSizeCallback);
-        glfwSetWindowUserPointer(m_Handle, this);
+        glfwSetWindowSizeCallback(m_Window, [](GLFWwindow* window, int width, int height)
+        {
+            WindowData& data = *static_cast<WindowData*>(glfwGetWindowUserPointer(window));
+            data.Width = width;
+            data.Height = height;
+
+            WindowResizeEvent event(width, height);
+            data.EventCallback(event);
+        });
+
+        glfwSetWindowCloseCallback(m_Window, [](GLFWwindow* window)
+        {
+            WindowData& data = *static_cast<WindowData*>(glfwGetWindowUserPointer(window));
+
+            WindowCloseEvent event;
+            data.EventCallback(event);
+        });
+
+        glfwSetCursorPosCallback(m_Window, [](GLFWwindow* window, double x, double y)
+        {
+            WindowData& data = *static_cast<WindowData*>(glfwGetWindowUserPointer(window));
+
+            MouseMovedEvent event(x, y);
+            data.EventCallback(event);
+        });
+
+        glfwSetScrollCallback(m_Window, [](GLFWwindow* window, double xoffset, double yoffset)
+        {
+            WindowData& data = *static_cast<WindowData*>(glfwGetWindowUserPointer(window));
+
+            MouseScrolledEvent event(xoffset, yoffset);
+            data.EventCallback(event);
+        });
+
+        glfwSetMouseButtonCallback(m_Window, [](GLFWwindow* window, int button, int action, int mods)
+        {
+            WindowData& data = *static_cast<WindowData*>(glfwGetWindowUserPointer(window));
+
+            if (action == GLFW_PRESS)
+            {
+                MouseButtonPressedEvent event(button);
+                data.EventCallback(event);
+            }
+            else if (action == GLFW_RELEASE)
+            {
+                MouseButtonReleasedEvent event(button);
+                data.EventCallback(event);
+            }
+        });
+    }
+
+    void Window::Shutdown()
+    {
     }
 
     Window::~Window()
     {
-        if (m_Handle)
+        if (m_Window)
         {
-            glfwDestroyWindow(m_Handle);
-            m_Handle = nullptr;
+            glfwDestroyWindow(m_Window);
+            m_Window = nullptr;
         }
         glfwTerminate();
     }
@@ -60,27 +123,17 @@ namespace RealmFortress
 
     void Window::SwapBuffers()
     {
-        glfwSwapBuffers(m_Handle);
+        glfwSwapBuffers(m_Window);
     }
 
     bool Window::ShouldClose() const
     {
-        return glfwWindowShouldClose(m_Handle);
+        return glfwWindowShouldClose(m_Window);
     }
 
     void Window::SetVSync(bool enabled)
     {
-        m_VSync = enabled;
-        glfwSwapInterval(m_VSync ? 1 : 0);
-    }
-
-    void Window::FramebufferSizeCallback(GLFWwindow* window, int width, int height)
-    {
-        glViewport(0, 0, width, height);
-        if (auto* self = static_cast<Window*>(glfwGetWindowUserPointer(window)))
-        {
-            self->m_Width = width;
-            self->m_Height = height;
-        }
+        m_Data.VSync = enabled;
+        glfwSwapInterval(m_Data.VSync ? 1 : 0);
     }
 } // namespace RealmFortress

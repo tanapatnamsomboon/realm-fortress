@@ -6,6 +6,8 @@
 
 #pragma once
 
+#include "core/KeyCodes.h"
+#include "core/MouseCodes.h"
 #include <utility>
 
 struct GLFWwindow;
@@ -24,10 +26,10 @@ namespace RealmFortress
         static void Init(GLFWwindow* window);
         static void Update();
 
-        static bool IsKeyDown(int key);
-        static bool IsKeyPress(int key);
-        static bool IsMouseButtonDown(int button);
-        static bool IsMouseButtonPressed(int button);
+        static bool IsKeyDown(KeyCode code);
+        static bool IsKeyPress(KeyCode code);
+        static bool IsMouseButtonDown(MouseCode code);
+        static bool IsMouseButtonPressed(MouseCode code);
 
         static std::pair<float, float> GetMousePosition();
         static std::pair<float, float> GetMouseDelta();

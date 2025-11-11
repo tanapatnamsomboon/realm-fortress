@@ -24,31 +24,31 @@ namespace RealmFortress
         glfwGetCursorPos(s_Window, &s_MouseX, &s_MouseY);
     }
 
-    bool Input::IsKeyDown(int key)
+    bool Input::IsKeyDown(KeyCode code)
     {
-        return glfwGetKey(s_Window, key) == GLFW_PRESS;
+        return glfwGetKey(s_Window, static_cast<int>(code)) == GLFW_PRESS;
     }
 
-    bool Input::IsKeyPress(int key)
+    bool Input::IsKeyPress(KeyCode code)
     {
         static bool wasDown[512] = { false };
-        bool now = glfwGetKey(s_Window, key) == GLFW_PRESS;
-        bool pressed = now && !wasDown[key];
-        wasDown[key] = now;
+        bool now = glfwGetKey(s_Window, static_cast<int>(code)) == GLFW_PRESS;
+        bool pressed = now && !wasDown[static_cast<int>(code)];
+        wasDown[static_cast<int>(code)] = now;
         return pressed;
     }
 
-    bool Input::IsMouseButtonDown(int button)
+    bool Input::IsMouseButtonDown(MouseCode code)
     {
-        return glfwGetMouseButton(s_Window, button) == GLFW_PRESS;
+        return glfwGetMouseButton(s_Window, static_cast<int>(code)) == GLFW_PRESS;
     }
 
-    bool Input::IsMouseButtonPressed(int button)
+    bool Input::IsMouseButtonPressed(MouseCode code)
     {
         static bool wasDown[8] = { false };
-        bool now = glfwGetMouseButton(s_Window, button) == GLFW_PRESS;
-        bool pressed = now && !wasDown[button];
-        wasDown[button] = now;
+        bool now = glfwGetMouseButton(s_Window, static_cast<int>(code)) == GLFW_PRESS;
+        bool pressed = now && !wasDown[static_cast<int>(code)];
+        wasDown[static_cast<int>(code)] = now;
         return pressed;
     }
 

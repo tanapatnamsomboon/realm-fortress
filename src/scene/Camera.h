@@ -10,6 +10,12 @@
 
 namespace RealmFortress
 {
+    class Event;
+    class MouseMovedEvent;
+    class MouseScrolledEvent;
+    class MouseButtonPressedEvent;
+    class WindowResizeEvent;
+
     /**
      * @class Camera
      * @brief TODO: add brief description
@@ -43,8 +49,15 @@ namespace RealmFortress
 
         glm::vec3 Position() const { return m_Position; }
 
+        void OnEvent(Event& event);
+
     private:
         void Recalculate();
+
+        bool OnMouseMoved(MouseMovedEvent& event);
+        bool OnMouseScrolled(MouseScrolledEvent& event);
+        bool OnMouseButtonPressed(MouseButtonPressedEvent& event);
+        bool OnWindowResize(WindowResizeEvent& event);
 
     private:
         float m_FOV{ 45.0f };

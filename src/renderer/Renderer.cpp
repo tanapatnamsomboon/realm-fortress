@@ -26,4 +26,9 @@ namespace RealmFortress
     void Renderer::Shutdown()
     {
     }
+
+    void Renderer::OnWindowResize(unsigned int width, unsigned int height)
+    {
+        glViewport(0, 0, width, height);
+    }
 } // namespace RealmFortress

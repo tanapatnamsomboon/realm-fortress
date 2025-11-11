@@ -81,17 +81,37 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(assimp)
 
+# stb
+FetchContent_Declare(
+        stb
+        GIT_REPOSITORY https://github.com/nothings/stb.git
+        GIT_TAG master
+)
+FetchContent_MakeAvailable(stb)
+add_library(stb INTERFACE)
+target_include_directories(stb INTERFACE ${stb_SOURCE_DIR})
+
 target_link_libraries(RealmFortress
         glfw
         glad
         glm
         imgui
+        stb
+        assimp
 )
 
-add_custom_command(TARGET RealmFortress POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E make_directory
-            $<TARGET_FILE_DIR:RealmFortress>/assets/shaders
-        COMMAND ${CMAKE_COMMAND} -E copy_directory
-            ${CMAKE_SOURCE_DIR}/assets/shaders
-            $<TARGET_FILE_DIR:RealmFortress>/assets/shaders
-)
+option(SYMLINK_ASSETS "Use symlink instead of copying assets" ON)
+
+if(SYMLINK_ASSETS AND UNIX)
+    add_custom_command(TARGET RealmFortress POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E create_symlink
+            ${CMAKE_SOURCE_DIR}/assets
+            $<TARGET_FILE_DIR:RealmFortress>/assets
+    )
+else()
+    add_custom_command(TARGET RealmFortress POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy_directory
+            ${CMAKE_SOURCE_DIR}/assets
+            $<TARGET_FILE_DIR:RealmFortress>/assets
+    )
+endif()
