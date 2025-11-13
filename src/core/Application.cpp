@@ -11,6 +11,7 @@
 #include "renderer/Shader.h"
 #include "renderer/Renderer.h"
 #include "renderer/Model.h"
+#include "renderer/Mesh.h"
 #include "scene/Scene.h"
 #include "scene/Camera.h"
 #include "scene/GridRenderer.h"
@@ -20,6 +21,7 @@
 #include "events/MouseEvent.h"
 #include "events/KeyEvent.h"
 #include "gameplay/HexGrid.h"
+#include "gameplay/TileSelector.h"
 #include <glad/gl.h>
 #include <GLFW/glfw3.h>
 #include <glm/gtc/matrix_transform.hpp>
@@ -46,8 +48,10 @@ namespace RealmFortress
         m_GrassModel = std::make_unique<Model>("assets/objects/tiles/base/hex_grass.gltf");
 
         m_HexGrid = std::make_unique<HexGrid>(20, 20, 1.0f);
-        m_HexGrid->SetModel(TileKind::Grass, m_GrassModel.get(), /*modelScale*/1.0f);
+        m_HexGrid->SetModel(TileKind::Grass, m_GrassModel.get(), 1.0f);
         m_HexGrid->GenerateFlat(TileKind::Grass);
+
+        m_TileSelector = std::make_unique<TileSelector>();
     }
 
     Application::~Application()
@@ -67,22 +71,34 @@ namespace RealmFortress
             m_Camera->SetViewport(static_cast<float>(m_Window->GetWidth()), static_cast<float>(m_Window->GetHeight()));
             m_Camera->Update(dt);
 
+            auto [mx, my] = Input::GetMousePosition();
+            m_TileSelector->Update(*m_Camera, *m_HexGrid, mx, my, m_Window->GetWidth(), m_Window->GetHeight());
+
             Renderer::Clear(m_ClearColor);
 
             glm::mat4 vp = m_Camera->GetProjectionMatrix() * m_Camera->GetViewMatrix();
 
-            m_Grid->Draw(*m_Shader, vp);
+            // m_Grid->Draw(*m_Shader, vp);
 
             m_Scene->Render(*m_Shader, vp);
 
             m_TerrainShader->Use();
             m_HexGrid->Render(*m_TerrainShader, vp);
 
+            m_TileSelector->RenderHighlight(vp);
+
             m_ImGui->Begin();
             ImGui::Begin("Stats");
             ImGui::Text("FPS: %.1f", 1.0f / dt);
             glm::vec3 camPos = m_Camera->Position();
             ImGui::Text("Camera Pos: %.2f, %.2f, %.2f", camPos.x, camPos.y, camPos.z);
+            if (auto select = m_TileSelector->GetSelected())
+            {
+                const HexTile* tile = *select;
+                ImGui::Separator();
+                ImGui::Text("Selected: q=%d r=%d", tile->Coord.Q, tile->Coord.R);
+                ImGui::Text("Kind: %d", static_cast<int>(tile->Kind));
+            }
             ImGui::End();
             m_ImGui->End();
 

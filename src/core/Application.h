@@ -24,6 +24,7 @@ namespace RealmFortress
     class MouseMovedEvent;
     class MouseScrolledEvent;
     class MouseButtonPressedEvent;
+    class TileSelector;
 
     /**
      * @class Application
@@ -54,6 +55,7 @@ namespace RealmFortress
         std::unique_ptr<ImGuiLayer> m_ImGui;
         std::unique_ptr<Model> m_GrassModel;
         std::unique_ptr<HexGrid> m_HexGrid;
+        std::unique_ptr<TileSelector> m_TileSelector;
         glm::vec3 m_ClearColor{ 0.06f, 0.08f, 0.10f };
     };
 } // namespace RealmFortress
