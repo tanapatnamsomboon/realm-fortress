@@ -10,6 +10,9 @@
 #include <glm/mat4x4.hpp>
 #include <vector>
 
+#include "core/Application.h"
+#include "core/Application.h"
+
 namespace RealmFortress
 {
     class Shader;
@@ -29,9 +32,11 @@ namespace RealmFortress
         void SetModel(TileKind kind, const Model* model, float scale = 1.0f);
         void GenerateFlat(TileKind kind);
 
-        void Render(const Shader& shader, const glm::mat4& vp) const;
+        void Render(Shader& shader, const glm::mat4& vp) const;
 
-        static glm::vec3 AxialToWorld(int q, int r, float radius);
+        static glm::vec3 AxialToWorld(int q, int r, float scale);
+
+        const std::vector<HexTile>& GetTiles() const { return m_Tiles; }
 
     private:
         int m_Width{ 0 }, m_Height{ 0 };

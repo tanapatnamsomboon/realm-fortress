@@ -77,24 +77,28 @@ namespace RealmFortress
         }
     }
 
-    void HexGrid::Render(const Shader& shader, const glm::mat4& vp) const
+    void HexGrid::Render(Shader& shader, const glm::mat4& vp) const
     {
         shader.Use();
-        for (const auto& tile : m_Tiles) {
+        for (const auto& tile : m_Tiles)
+        {
             if (!tile.Model) continue;
             glm::mat4 M = glm::translate(glm::mat4(1.0f), tile.WorldPosition);
             M = glm::scale(M, glm::vec3(tile.ModelScale));
             shader.SetMat4("uMVP", vp * M);
             shader.SetMat4("uModel", M);
-            tile.Model->Draw();
+            tile.Model->Draw(shader);
         }
     }
 
-    glm::vec3 HexGrid::AxialToWorld(int q, int r, float radius)
+    glm::vec3 HexGrid::AxialToWorld(int q, int r, float scale)
     {
-        constexpr float sqrt3 = 1.7320508075688772f;
-        float x = sqrt3 * (q + r * 0.5f) * radius;
-        float z = 1.5f * r * radius;
+        float width = 2.0f * scale;
+        float height = 2.31f * scale;
+
+        float x = width * (q + r * 0.5f);
+        float z = height * (r * 0.75f);
+
         return { x, 0.0f, z };
     }
 } // namespace RealmFortress
