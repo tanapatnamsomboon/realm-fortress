@@ -5,6 +5,7 @@
  */
 
 #include "Model.h"
+#include "renderer/Mesh.h"
 #include <glad/gl.h>
 #include <assimp/Importer.hpp>
 #include <assimp/scene.h>
@@ -28,7 +29,7 @@ namespace RealmFortress
             if (mesh->HasNormals())
                 vertex.Normal = { mesh->mNormals[i].x, mesh->mNormals[i].y, mesh->mNormals[i].z };
             if (mesh->HasTextureCoords(0))
-                vertex.UV = { mesh->mTextureCoords[0][i].x, mesh->mTextureCoords[0][i].y };
+                vertex.TexCoords = { mesh->mTextureCoords[0][i].x, mesh->mTextureCoords[0][i].y };
             vertices.push_back(vertex);
         }
 
@@ -49,55 +50,15 @@ namespace RealmFortress
         return indices;
     }
 
-    Mesh::Mesh(const std::vector<Vertex>& vertices, const std::vector<unsigned int>& indices, unsigned int diffuse)
-        : m_Diffuse(diffuse), m_IndexCount(static_cast<int>(indices.size()))
-    {
-        glGenVertexArrays(1, &m_VAO);
-        glGenBuffers(1, &m_VBO);
-        glGenBuffers(1, &m_EBO);
-        glBindVertexArray(m_VAO);
-        glBindBuffer(GL_ARRAY_BUFFER, m_VBO);
-        glBufferData(GL_ARRAY_BUFFER, vertices.size()*sizeof(Vertex), vertices.data(), GL_STATIC_DRAW);
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_EBO);
-        glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size()*sizeof(unsigned), indices.data(), GL_STATIC_DRAW);
-
-        glEnableVertexAttribArray(0); // position
-        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), reinterpret_cast<void *>(offsetof(Vertex, Position)));
-        glEnableVertexAttribArray(1); // normal
-        glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), reinterpret_cast<void *>(offsetof(Vertex, Normal)));
-        glEnableVertexAttribArray(2); // uv
-        glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), reinterpret_cast<void *>(offsetof(Vertex, UV)));
-        glBindVertexArray(0);
-    }
-
-    Mesh::~Mesh()
-    {
-        if (m_EBO) glDeleteBuffers(1, &m_EBO);
-        if (m_VBO) glDeleteBuffers(1, &m_VBO);
-        if (m_VAO) glDeleteVertexArrays(1, &m_VAO);
-    }
-
-    void Mesh::Draw() const
-    {
-        if (m_Diffuse)
-        {
-            glActiveTexture(GL_TEXTURE0);
-            glBindTexture(GL_TEXTURE_2D, m_Diffuse);
-        }
-        glBindVertexArray(m_VAO);
-        glDrawElements(GL_TRIANGLES, m_IndexCount, GL_UNSIGNED_INT, 0);
-        glBindVertexArray(0);
-    }
-
     Model::Model(const std::string& path)
     {
         Load(path);
     }
 
-    void Model::Draw() const
+    void Model::Draw(Shader& shader) const
     {
         for (const auto& mesh : m_Meshes)
-            mesh.Draw();
+            mesh.Draw(shader);
     }
 
     void Model::Load(const std::string& path)

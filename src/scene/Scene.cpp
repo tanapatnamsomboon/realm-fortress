@@ -19,7 +19,8 @@ namespace RealmFortress
     void Scene::Render(const Shader& shader, const glm::mat4& vp)
     {
         shader.Use();
-        for (const auto& e : m_Entities) {
+        for (const auto& e : m_Entities)
+        {
             glm::mat4 model = glm::translate(glm::mat4(1.0f), e.Position);
             model = glm::scale(model, e.Scale);
             shader.SetMat4("uMVP", vp * model);

@@ -12,32 +12,8 @@
 
 namespace RealmFortress
 {
-    struct Vertex
-    {
-        glm::vec3 Position{};
-        glm::vec3 Normal{};
-        glm::vec2 UV{};
-    };
-
-    /**
-     * @class Mesh
-     * @brief TODO: add brief description
-     *
-     * TODO: add detailed description
-     */
-    class Mesh
-    {
-    public:
-        Mesh(const std::vector<Vertex>& vertices, const std::vector<unsigned int>& indices, unsigned int diffuse);
-        ~Mesh();
-
-        void Draw() const;
-
-    private:
-        unsigned int m_VAO{ 0 }, m_VBO{ 0 }, m_EBO{ 0 };
-        unsigned int m_Diffuse{ 0 };
-        int m_IndexCount{ 0 };
-    };
+    class Mesh;
+    class Shader;
 
     /**
      * @class Model
@@ -51,7 +27,7 @@ namespace RealmFortress
         explicit Model(const std::string& path);
         ~Model() = default;
 
-        void Draw() const;
+        void Draw(Shader& shader) const;
         unsigned int GetDiffuse() const { return m_DefaultDiffuse; }
 
     private:
