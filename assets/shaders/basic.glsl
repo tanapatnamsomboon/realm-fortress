@@ -32,7 +32,7 @@ in vec3 vFragPos;
 uniform vec3 uLightPos;
 uniform vec3 uViewPos;
 uniform vec3 uLightColor;
-// uniform vec3 uTintColor;
+uniform vec3 uTintColor;
 
 uniform sampler2D uTexture;
 
@@ -57,6 +57,6 @@ void main()
     float spec = pow(max(dot(viewDir, reflectDir), 0.0), 32);
     vec3 specular = specularStrength * spec * uLightColor;
 
-    vec3 result = (ambient + diffuse + specular) * texColor.rgb /* * uTintColor */;
+    vec3 result = (ambient + diffuse + specular) * texColor.rgb * uTintColor;
     color = vec4(result, 1.0);
 }

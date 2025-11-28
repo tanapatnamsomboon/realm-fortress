@@ -9,8 +9,8 @@
 
 namespace RF
 {
-    constexpr float HEX_WIDTH = 1.732f; // sqrt(3)
-    constexpr float HEX_HEIGHT = 2.0f;
+    constexpr float hsize = 1.155f;
+    constexpr float sqrt3 = 1.73205f;
 
     const HexCoordinate HexCoordinate::Directions[6] = {
         HexCoordinate(+1,  0),  // right
@@ -23,8 +23,8 @@ namespace RF
 
     glm::vec3 HexCoordinate::ToWorldPosition() const
     {
-        f32 x = HEX_WIDTH * (q + 0.5f * r);
-        f32 z = 1.5f * r;
+        f32 x = (sqrt3 * q + sqrt3 / 2 * r) * hsize;
+        f32 z = (                 1.5f * r) * hsize;
         f32 y = 0.0f;
 
         return glm::vec3(x, y, z);

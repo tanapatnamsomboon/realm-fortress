@@ -31,9 +31,11 @@ namespace RF
         Assimp::Importer importer;
         const aiScene* scene = importer.ReadFile(path,
             aiProcess_Triangulate |
-            aiProcess_FlipUVs |
             aiProcess_CalcTangentSpace |
-            aiProcess_GenNormals);
+            aiProcess_FlipUVs |
+            aiProcess_GenNormals |
+            aiProcess_ImproveCacheLocality |
+            aiProcess_JoinIdenticalVertices);
 
         if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode)
         {
@@ -121,9 +123,11 @@ namespace RF
         return Mesh(vertices, indices, textures);
     }
 
-    std::vector<Ref<Texture2D>> Model::LoadMaterialTextures(aiMaterial* mat, aiTextureType type, const std::string& name) {
+    std::vector<Ref<Texture2D>> Model::LoadMaterialTextures(aiMaterial* mat, aiTextureType type, const std::string& name)
+    {
         std::vector<Ref<Texture2D>> textures;
-        for (u32 i = 0; i < mat->GetTextureCount(type); i++) {
+        for (u32 i = 0; i < mat->GetTextureCount(type); i++)
+        {
             aiString str;
             mat->GetTexture(type, i, &str);
 

@@ -23,7 +23,7 @@ namespace RF
         mShader = Shader::Create("assets/shaders/basic.glsl");
 
         mHexMap = CreateScope<HexMap>();
-        mHexMap->Generate(20, 20);
+        mHexMap->Generate(5, 5);
     }
 
     void GameLayer::OnDetach()
@@ -44,7 +44,7 @@ namespace RF
         mShader->SetFloat3("uLightPos", glm::vec3(10.0f, 20.0f, 10.0f));
         mShader->SetFloat3("uViewPos", mCameraController.GetCamera().GetPosition());
         mShader->SetFloat3("uLightColor", glm::vec3(1.0f, 1.0f, 1.0f));
-        // mShader->SetFloat3("uTintColor", glm::vec3(1.0f, 1.0f, 1.0f));
+        mShader->SetFloat3("uTintColor", glm::vec3(1.0f, 1.0f, 1.0f));
 
         mHexMap->Draw(mShader);
 
