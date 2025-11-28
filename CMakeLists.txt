@@ -1,117 +1,116 @@
-cmake_minimum_required(VERSION 3.21)
-project(RealmFortress LANGUAGES C CXX)
+cmake_minimum_required(VERSION 3.25)
+
+project(realm-fortress
+        VERSION 0.1.0
+        LANGUAGES C CXX
+        DESCRIPTION "Realm Fortress"
+)
 
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
+
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-include(config/config.cmake)
-include(config/compiler.cmake)
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
+set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
+
 include(config/platform.cmake)
+include(config/compiler.cmake)
+include(config/precompile.cmake)
+include(config/vendor.cmake)
 
-file(GLOB_RECURSE SRC_FILES CONFIGURE_DEPENDS src/*.cpp)
+add_executable(realm-fortress
+        src/core/entry_point.cpp
 
-add_executable(RealmFortress ${SRC_FILES})
+        # core
+        src/core/application.cpp
+        src/core/application.h
+        src/core/base.h
+        src/core/input.cpp
+        src/core/input.h
+        src/core/key_codes.h
+        src/core/layer.cpp
+        src/core/layer.h
+        src/core/layer_stack.cpp
+        src/core/layer_stack.h
+        src/core/logger.cpp
+        src/core/logger.h
+        src/core/mouse_codes.h
+        src/core/timestep.h
+        src/core/window.cpp
+        src/core/window.h
 
-target_include_directories(RealmFortress PRIVATE
-        src
+        # events
+        src/events/application_event.h
+        src/events/event.h
+        src/events/key_event.h
+        src/events/mouse_event.h
+
+        # game
+        src/game/application_impl.cpp
+        src/game/game_layer.cpp
+        src/game/game_layer.h
+        src/game/hex_coordinate.cpp
+        src/game/hex_coordinate.h
+        src/game/hex_map.cpp
+        src/game/hex_map.h
+
+        # imgui
+        src/imgui/imgui_layer.cpp
+        src/imgui/imgui_layer.h
+
+        # renderer
+        src/renderer/buffer.cpp
+        src/renderer/buffer.h
+        src/renderer/graphics_context.cpp
+        src/renderer/graphics_context.h
+        src/renderer/material.cpp
+        src/renderer/material.h
+        src/renderer/mesh.cpp
+        src/renderer/mesh.h
+        src/renderer/model.cpp
+        src/renderer/model.h
+        src/renderer/render_command.cpp
+        src/renderer/render_command.h
+        src/renderer/renderer.cpp
+        src/renderer/renderer.h
+        src/renderer/renderer_api.h
+        src/renderer/shader.cpp
+        src/renderer/shader.h
+        src/renderer/texture.cpp
+        src/renderer/texture.h
+        src/renderer/vertex_array.cpp
+        src/renderer/vertex_array.h
+
+        # scene
+        src/scene/camera.cpp
+        src/scene/camera.h
+        src/scene/camera_controller.cpp
+        src/scene/camera_controller.h
 )
 
-include(FetchContent)
-
-# glfw
-FetchContent_Declare(
-        glfw
-        GIT_REPOSITORY https://github.com/glfw/glfw.git
-        GIT_TAG 3.4
-)
-FetchContent_MakeAvailable(glfw)
-
-# glad
-FetchContent_Declare(
-        glad
-        GIT_REPOSITORY https://github.com/Dav1dde/glad.git
-        GIT_TAG glad2
-        GIT_PROGRESS TRUE
-        SOURCE_SUBDIR cmake
-)
-FetchContent_MakeAvailable(glad)
-glad_add_library(glad STATIC REPRODUCIBLE LOADER API gl:core=4.6)
-
-# glm
-FetchContent_Declare(
-        glm
-        GIT_REPOSITORY https://github.com/g-truc/glm.git
-        GIT_TAG 1.0.2
-)
-FetchContent_MakeAvailable(glm)
-
-# imgui
-FetchContent_Declare(
-        imgui
-        GIT_REPOSITORY https://github.com/ocornut/imgui.git
-        GIT_TAG docking
-)
-FetchContent_MakeAvailable(imgui)
-add_library(imgui STATIC
-        ${imgui_SOURCE_DIR}/imgui.cpp
-        ${imgui_SOURCE_DIR}/imgui_draw.cpp
-        ${imgui_SOURCE_DIR}/imgui_tables.cpp
-        ${imgui_SOURCE_DIR}/imgui_widgets.cpp
-        ${imgui_SOURCE_DIR}/imgui_demo.cpp
-        ${imgui_SOURCE_DIR}/backends/imgui_impl_glfw.cpp
-        ${imgui_SOURCE_DIR}/backends/imgui_impl_opengl3.cpp
-)
-target_link_libraries(imgui
-        PRIVATE
-        glfw
-        glad
-)
-target_include_directories(imgui
-        PUBLIC
-        ${imgui_SOURCE_DIR}
-        ${imgui_SOURCE_DIR}/backends
-)
-
-# assimp
-FetchContent_Declare(
-        assimp
-        GIT_REPOSITORY https://github.com/assimp/assimp
-        GIT_TAG master
-)
-FetchContent_MakeAvailable(assimp)
-
-# stb
-FetchContent_Declare(
-        stb
-        GIT_REPOSITORY https://github.com/nothings/stb.git
-        GIT_TAG master
-)
-FetchContent_MakeAvailable(stb)
-add_library(stb INTERFACE)
-target_include_directories(stb INTERFACE ${stb_SOURCE_DIR})
-
-target_link_libraries(RealmFortress
+target_link_libraries(realm-fortress PRIVATE
         glfw
         glad
-        glm
+        glm::glm
+        assimp::assimp
         imgui
         stb
-        assimp
+        spdlog::spdlog
 )
 
-option(SYMLINK_ASSETS "Use symlink instead of copying assets" ON)
+target_precompile_headers(realm-fortress PRIVATE
+    src/core/pch.h
+)
 
-if(SYMLINK_ASSETS AND UNIX)
-    add_custom_command(TARGET RealmFortress POST_BUILD
-            COMMAND ${CMAKE_COMMAND} -E create_symlink
-            ${CMAKE_SOURCE_DIR}/assets
-            $<TARGET_FILE_DIR:RealmFortress>/assets
-    )
-else()
-    add_custom_command(TARGET RealmFortress POST_BUILD
-            COMMAND ${CMAKE_COMMAND} -E copy_directory
-            ${CMAKE_SOURCE_DIR}/assets
-            $<TARGET_FILE_DIR:RealmFortress>/assets
-    )
-endif()
+target_include_directories(realm-fortress PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/src
+)
+
+add_custom_command(TARGET realm-fortress POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_directory
+        ${CMAKE_SOURCE_DIR}/assets
+        $<TARGET_FILE_DIR:realm-fortress>/assets
+)

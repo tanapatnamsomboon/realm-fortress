@@ -5,23 +5,25 @@ charset = utf-8
 end_of_line = lf
 insert_final_newline = true
 trim_trailing_whitespace = true
+
+[*.{cpp,h,hpp,c}]
 indent_style = space
 indent_size = 4
 
-[Makefile]
-indent_style = tab
+[*.{cmake,txt}]
+indent_style = space
+indent_size = 4
+
+[*.{json,xml}]
+indent_style = space
+indent_size = 2
+
+[*.{glsl,vert,frag,geom,comp}]
+indent_style = space
+indent_size = 4
 
 [*.md]
 trim_trailing_whitespace = false
 
-[*.yml]
-trim_trailing_whitespace = false
-
-[*.{cpp,h,hpp,cxx,cc}]
-indent_size = 4
-insert_final_newline = true
-max_line_length = 120
-
-[*.{vert,frag,glsl}]
-indent_size = 4
-insert_final_newline = true
+[Makefile]
+indent_style = tab

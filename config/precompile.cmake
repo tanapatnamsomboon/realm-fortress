@@ -1,0 +1,5 @@
+if (CMAKE_VERSION VERSION_GREATER_EQUAL "3.16")
+    message(STATUS "Precompiled headers enabled")
+else ()
+    message(WARNING "CMake version < 3.16, precompiled headers disabled")
+endif ()
