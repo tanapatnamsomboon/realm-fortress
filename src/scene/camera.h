@@ -27,9 +27,13 @@ namespace RF
         }
 
         const glm::mat4& GetProjection() const { return mProjection; }
+        const glm::mat4& GetViewMatrix() const { return mViewMatrix; }
+        const glm::mat4& GetViewProjectionMatrix() const { return mViewProjectionMatrix; }
 
     protected:
         glm::mat4 mProjection = glm::mat4(1.0f);
+        glm::mat4 mViewMatrix = glm::mat4(1.0f);
+        glm::mat4 mViewProjectionMatrix = glm::mat4(1.0f);
     };
 
     class OrthographicCamera final : public Camera
@@ -45,14 +49,8 @@ namespace RF
         f32 GetRotation() const { return mRotation; }
         void SetRotation(f32 rotation) { mRotation = rotation; RecalculateViewMatrix(); }
 
-        const glm::mat4& GetViewMatrix() const { return mViewMatrix; }
-        const glm::mat4& GetViewProjectionMatrix() const { return mViewProjectionMatrix; }
-
     private:
         void RecalculateViewMatrix();
-
-        glm::mat4 mViewMatrix;
-        glm::mat4 mViewProjectionMatrix;
 
         glm::vec3 mPosition = { 0.0f, 0.0f, 0.0f };
         f32 mRotation = 0.0f;
@@ -71,33 +69,15 @@ namespace RF
         const glm::vec3& GetPosition() const { return mPosition; }
         const glm::vec3& GetRotation() const { return mRotation; }
 
-        const glm::vec3& GetForward() const { return mForward; }
-        const glm::vec3& GetUp() const { return mUp; }
-        const glm::vec3& GetRight() const { return mRight; }
-
-        f32 GetPitch() const { return mPitch; }
-        f32 GetYaw() const { return mYaw; }
-
-        void SetPitch(f32 pitch) { mPitch = pitch; UpdateCameraVectors(); RecalculateViewMatrix(); }
-        void SetYaw(f32 yaw) { mYaw = yaw; UpdateCameraVectors(); RecalculateViewMatrix(); }
-
-        const glm::mat4& GetViewMatrix() const { return mViewMatrix; }
-        const glm::mat4& GetViewProjectionMatrix() const { return mViewProjectionMatrix; }
+        glm::vec3 GetForward() const;
+        glm::vec3 GetRight() const;
+        glm::vec3 GetUp() const;
 
     private:
-        void UpdateCameraVectors();
         void RecalculateViewMatrix();
 
-        glm::mat4 mViewMatrix;
-        glm::mat4 mViewProjectionMatrix;
-
+    private:
         glm::vec3 mPosition = { 0.0f, 0.0f, 0.0f };
         glm::vec3 mRotation = { 0.0f, 0.0f, 0.0f };
-        glm::vec3 mForward = { 0.0f, 0.0f, -1.0f };
-        glm::vec3 mUp = { 0.0f, 1.0f, 0.0f };
-        glm::vec3 mRight = { 1.0f, 0.0f, 0.0f };
-
-        f32 mPitch = 0.0f;
-        f32 mYaw = -90.0f;
     };
 } // RF

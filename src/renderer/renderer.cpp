@@ -27,7 +27,7 @@ namespace RF
 
     void Renderer::BeginScene(const Camera& camera)
     {
-        sSceneData->mViewProjectionMatrix = camera.GetProjection();
+        sSceneData->mViewProjectionMatrix = camera.GetViewProjectionMatrix();
     }
 
     void Renderer::EndScene()

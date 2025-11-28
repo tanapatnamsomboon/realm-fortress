@@ -103,6 +103,10 @@ target_include_directories(imgui PUBLIC
 
 target_link_libraries(imgui PRIVATE glfw glad)
 
+if (UNIX AND NOT APPLE)
+    target_link_libraries(imgui PRIVATE ${X11_LIBRARIES})
+endif ()
+
 # ============================================================================
 # stb
 # ============================================================================

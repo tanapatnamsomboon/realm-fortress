@@ -20,7 +20,7 @@ namespace RF
     public:
         Model(const std::string& path);
 
-        void Draw(const Ref<Shader>& shader);
+        void Draw(const Ref<Shader>& shader, const glm::mat4& transform = glm::mat4(1.0f));
 
         const std::vector<Mesh>& GetMeshes() const { return mMeshes; }
 

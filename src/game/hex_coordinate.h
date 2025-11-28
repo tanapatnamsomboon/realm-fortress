@@ -66,7 +66,7 @@ namespace std
     template<>
     struct hash<RF::HexCoordinate>
     {
-        size_t operator()(const RF::HexCoordinate& coord) const
+        size_t operator()(const RF::HexCoordinate& coord) const noexcept
         {
             return hash<RF::i32>()(coord.q) ^ (hash<RF::i32>()(coord.r) << 1);
         }

@@ -4,14 +4,17 @@
  * @date 11/21/2025
  */
 
+#include "core/pch.h"
 #include "camera.h"
 #include <glm/gtc/matrix_transform.hpp>
+#define GLM_ENABLE_EXPERIMENTAL
+#include <glm/gtx/quaternion.hpp>
 
 namespace RF
 {
     // Orthographic Camera
     OrthographicCamera::OrthographicCamera(f32 left, f32 right, f32 bottom, f32 top)
-        : Camera(glm::ortho(left, right, bottom, top, -1.0f, 1.0f)), mViewMatrix(1.0f)
+        : Camera(glm::ortho(left, right, bottom, top, -1.0f, 1.0f))
     {
         mViewProjectionMatrix = mProjection * mViewMatrix;
     }
@@ -33,10 +36,8 @@ namespace RF
 
     // Perspective Camera
     PerspectiveCamera::PerspectiveCamera(f32 fov, f32 aspectRatio, f32 nearClip, f32 farClip)
-        : Camera(glm::perspective(glm::radians(fov), aspectRatio, nearClip, farClip)), mViewMatrix(1.0f)
     {
-        UpdateCameraVectors();
-        RecalculateViewMatrix();
+        SetProjection(fov, aspectRatio, nearClip, farClip);
     }
 
     void PerspectiveCamera::SetProjection(f32 fov, f32 aspectRatio, f32 nearClip, f32 farClip)
@@ -45,21 +46,49 @@ namespace RF
         mViewProjectionMatrix = mProjection * mViewMatrix;
     }
 
-    void PerspectiveCamera::UpdateCameraVectors()
+    glm::vec3 PerspectiveCamera::GetForward() const
     {
-        glm::vec3 forward;
-        forward.x = cos(glm::radians(mYaw)) * cos(glm::radians(mPitch));
-        forward.y = sin(glm::radians(mPitch));
-        forward.z = sin(glm::radians(mYaw)) * cos(glm::radians(mPitch));
-        mForward = glm::normalize(forward);
+        glm::quat orientation = glm::quat(glm::vec3(
+            glm::radians(mRotation.x),
+            glm::radians(mRotation.y),
+            glm::radians(mRotation.z)
+        ));
+        return glm::rotate(orientation, glm::vec3(0.0f, 0.0f, -1.0f));
+    }
 
-        mRight = glm::normalize(glm::cross(mForward, glm::vec3(0.0f, 1.0f, 0.0f)));
-        mUp = glm::normalize(glm::cross(mRight, mForward));
+    glm::vec3 PerspectiveCamera::GetRight() const
+    {
+        glm::quat orientation = glm::quat(glm::vec3(
+            glm::radians(mRotation.x),
+            glm::radians(mRotation.y),
+            glm::radians(mRotation.z)
+        ));
+        return glm::rotate(orientation, glm::vec3(1.0f, 0.0f, 0.0f));
+    }
+
+    glm::vec3 PerspectiveCamera::GetUp() const
+    {
+        glm::quat orientation = glm::quat(glm::vec3(
+            glm::radians(mRotation.x),
+            glm::radians(mRotation.y),
+            glm::radians(mRotation.z)
+        ));
+        return glm::rotate(orientation, glm::vec3(0.0f, 1.0f, 0.0f));
     }
 
     void PerspectiveCamera::RecalculateViewMatrix()
     {
-        mViewMatrix = glm::lookAt(mPosition, mPosition + mForward, mUp);
+        glm::quat orientation = glm::quat(glm::vec3(
+            glm::radians(mRotation.x),  // pitch
+            glm::radians(mRotation.y),  // yaw
+            glm::radians(mRotation.z)   // roll
+        ));
+
+        glm::mat4 rotation = glm::toMat4(orientation);
+        glm::mat4 translation = glm::translate(glm::mat4(1.0f), mPosition);
+
+        mViewMatrix = glm::inverse(translation * rotation);
         mViewProjectionMatrix = mProjection * mViewMatrix;
     }
-} // RF
+
+} // namespace RF

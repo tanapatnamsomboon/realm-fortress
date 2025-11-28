@@ -6,7 +6,6 @@
 
 #include "core/pch.h"
 #include "hex_map.h"
-#include "game/hex_map.h"
 #include "core/logger.h"
 #include "renderer/renderer.h"
 #include <glm/gtc/matrix_transform.hpp>
@@ -102,11 +101,10 @@ namespace RF
             worldPos.y = tile.Elevation * 1.0f;
 
             glm::mat4 transform = glm::translate(glm::mat4(1.0f), worldPos);
-            shader->SetMat4("uTransform", transform);
 
             auto model = GetModelForTile(tile);
             if (model)
-                model->Draw(shader);
+                model->Draw(shader, transform);
         }
     }
 

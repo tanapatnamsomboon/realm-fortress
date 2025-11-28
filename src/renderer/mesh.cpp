@@ -16,7 +16,7 @@ namespace RF
         SetupMesh();
     }
 
-    void Mesh::Draw(const Ref<Shader>& shader)
+    void Mesh::Draw(const Ref<Shader>& shader, const glm::mat4& transform)
     {
         for (u32 i = 0; i < mTextures.size(); i++)
         {
@@ -24,7 +24,7 @@ namespace RF
             shader->SetInt("uTexture", i);
         }
 
-        Renderer::Submit(shader, mVertexArray);
+        Renderer::Submit(shader, mVertexArray, transform);
     }
 
     void Mesh::SetupMesh()

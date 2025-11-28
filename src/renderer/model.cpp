@@ -18,11 +18,11 @@ namespace RF
         LoadModel(path);
     }
 
-    void Model::Draw(const Ref<Shader>& shader)
+    void Model::Draw(const Ref<Shader>& shader, const glm::mat4& transform)
     {
         for (auto& mesh : mMeshes)
         {
-            mesh.Draw(shader);
+            mesh.Draw(shader, transform);
         }
     }
 

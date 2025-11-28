@@ -10,7 +10,6 @@
 #include <glm/gtc/type_ptr.hpp>
 #include <fstream>
 #include <sstream>
-#include <filesystem>
 
 namespace RF
 {

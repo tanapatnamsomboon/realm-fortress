@@ -27,7 +27,7 @@ namespace RF
     public:
         Mesh(const std::vector<Vertex>& vertices, const std::vector<u32>& indices, const std::vector<Ref<Texture2D>>& textures);
 
-        void Draw(const Ref<Shader>& shader);
+        void Draw(const Ref<Shader>& shader, const glm::mat4& transform = glm::mat4(1.0f));
 
         const std::vector<Vertex>& GetVertices() const { return mVertices; }
         const std::vector<u32>& GetIndices() const { return mIndices; }
@@ -36,6 +36,7 @@ namespace RF
     private:
         void SetupMesh();
 
+    private:
         std::vector<Vertex> mVertices;
         std::vector<u32> mIndices;
         std::vector<Ref<Texture2D>> mTextures;

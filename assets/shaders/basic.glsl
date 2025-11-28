@@ -32,10 +32,14 @@ in vec3 vFragPos;
 uniform vec3 uLightPos;
 uniform vec3 uViewPos;
 uniform vec3 uLightColor;
-uniform vec3 uObjectColor;
+// uniform vec3 uTintColor;
+
+uniform sampler2D uTexture;
 
 void main()
 {
+    vec4 texColor = texture(uTexture, vTexCoords);
+
     // ambient
     float ambientStrength = 0.3;
     vec3 ambient = ambientStrength * uLightColor;
@@ -53,6 +57,6 @@ void main()
     float spec = pow(max(dot(viewDir, reflectDir), 0.0), 32);
     vec3 specular = specularStrength * spec * uLightColor;
 
-    vec3 result = (ambient + diffuse + specular) * uObjectColor;
+    vec3 result = (ambient + diffuse + specular) * texColor.rgb /* * uTintColor */;
     color = vec4(result, 1.0);
 }
