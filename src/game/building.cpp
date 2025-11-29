@@ -49,17 +49,27 @@ namespace RF
                 BuildingType::Home,
                 "Home",
                 "Houses for colonists",
-                "assets/objects/building/neutral/building_home_A.gltf",
+                "assets/objects/buildings/blue/building_home_A_blue.gltf",
                 BuildingCost({
                     ResourceAmount(ResourceType::Wood, 50),
-                    ResourceAmount(ResourceType::Stone, 20),
+                    ResourceAmount(ResourceType::Stone, 20)
+                })
+            ),
+            BuildingDefinition(
+                BuildingType::Lumbermill,
+                "Lumbermill",
+                "Produces wood from trees",
+                "assets/objects/buildings/blue/building_lumbermill_blue.gltf",
+                BuildingCost({
+                    ResourceAmount(ResourceType::Wood, 75),
+                    ResourceAmount(ResourceType::Stone, 30)
                 })
             ),
             BuildingDefinition(
                 BuildingType::Mine,
                 "Mine",
                 "Extracts stone and ore",
-                "assets/objects/building/neutral/building_mine.gltf",
+                "assets/objects/buildings/blue/building_mine_blue.gltf",
                 BuildingCost({
                     ResourceAmount(ResourceType::Wood, 50),
                     ResourceAmount(ResourceType::Stone, 20),
@@ -69,17 +79,28 @@ namespace RF
                 BuildingType::Farm,
                 "Farm",
                 "Trading post",
-                "assets/objects/building/neutral/building_market.gltf",
+                "assets/objects/buildings/neutral/building_grain.gltf",
                 BuildingCost({
                     ResourceAmount(ResourceType::Wood, 50),
                     ResourceAmount(ResourceType::Stone, 20),
                 })
             ),
             BuildingDefinition(
+                BuildingType::Market,
+                "Market",
+                "Trading post",
+                "assets/objects/buildings/blue/building_market_blue.gltf",
+                BuildingCost({
+                    ResourceAmount(ResourceType::Wood, 80),
+                    ResourceAmount(ResourceType::Stone, 50),
+                    ResourceAmount(ResourceType::Gold, 10)
+                })
+            ),
+            BuildingDefinition(
                 BuildingType::Barracks,
                 "Barracks",
                 "Trains soldiers",
-                "assets/objects/buildings/neutral/building_barracks.gltf",
+                "assets/objects/buildings/blue/building_barracks_blue.gltf",
                 BuildingCost({
                     ResourceAmount(ResourceType::Wood, 100),
                     ResourceAmount(ResourceType::Stone, 80),
@@ -90,7 +111,7 @@ namespace RF
                 BuildingType::Tower,
                 "Tower",
                 "Defense structure",
-                "assets/objects/buildings/neutral/building_tower_A.gltf",
+                "assets/objects/buildings/blue/building_tower_A_blue.gltf",
                 BuildingCost({
                     ResourceAmount(ResourceType::Wood, 50),
                     ResourceAmount(ResourceType::Stone, 100),

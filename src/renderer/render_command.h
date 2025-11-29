@@ -28,6 +28,11 @@ namespace RF
             sRendererAPI->SetClearColor(color);
         }
 
+        static void SetBlend(bool enabled)
+        {
+            sRendererAPI->SetBlend(enabled);
+        }
+
         static void Clear()
         {
             sRendererAPI->Clear();

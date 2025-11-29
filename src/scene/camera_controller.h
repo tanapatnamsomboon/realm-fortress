@@ -9,7 +9,6 @@
 #include "scene/camera.h"
 #include "core/timestep.h"
 #include "events/event.h"
-#include "events/mouse_event.h"
 
 namespace RF
 {
@@ -27,7 +26,7 @@ namespace RF
         void SetAspectRatio(float aspectRatio);
 
     private:
-        bool OnMouseScrolled(MouseScrolledEvent& event);
+        bool OnMouseScrolled(class MouseScrolledEvent& event);
 
     private:
         f32 mAspectRatio;

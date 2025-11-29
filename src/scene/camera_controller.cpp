@@ -9,6 +9,7 @@
 #include "core/input.h"
 #include "core/key_codes.h"
 #include "core/mouse_codes.h"
+#include "events/mouse_event.h"
 
 namespace RF
 {

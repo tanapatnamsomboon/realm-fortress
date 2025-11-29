@@ -51,8 +51,11 @@ namespace RF
         f32 x = intersectionPoint.x;
         f32 z = intersectionPoint.z;
 
-        f32 q = (x * std::sqrt(3.0f) / 3.0f - z / 3.0f) / 1.0f;
-        f32 r = z * 2.0f / 3.0f / 1.0f;
+        constexpr f32 hsize = 1.155f;
+        const f32 sqrt3 = std::sqrt(3.0f);
+
+        f32 q = (x * sqrt3 / 3.0f - z / 3.0f) / hsize;
+        f32 r = z * 2.0f / 3.0f / hsize;
 
         f32 s = -q - r;
 

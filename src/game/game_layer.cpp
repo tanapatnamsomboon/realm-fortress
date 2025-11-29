@@ -10,20 +10,23 @@
 #include "core/input.h"
 #include "renderer/renderer.h"
 #include "events/mouse_event.h"
+#include "events/key_event.h"
 #include <imgui.h>
 
 namespace RF
 {
     GameLayer::GameLayer()
-        : Layer("GameLayer"), mCameraController(1600.0f / 900.0f)
+        : Layer("GameLayer"), mCameraController(1600.0f / 900.0f), mGhostBuildingValid(false), mTime(0.0f), mPulseIntensity(1.0f)
     {
     }
 
     void GameLayer::OnAttach()
     {
-        RF_INFO("GameLayer attached");
+        RF_INFO("gameLayer attached");
 
         mShader = Shader::Create("assets/shaders/basic.glsl");
+        mHighlightShader = Shader::Create("assets/shaders/hex_highlight.glsl");
+        mTranslucentShader = Shader::Create("assets/shaders/translucent.glsl");
 
         mHexMap = CreateScope<HexMap>();
         mHexMap->Generate(5, 5);
@@ -33,16 +36,30 @@ namespace RF
 
         mResourceManager = CreateScope<ResourceManager>();
         mSelectionManager = CreateScope<SelectionManager>();
+
+        try
+        {
+            mHexHighlightModel = CreateRef<Model>("assets/objects/tiles/base/hex_grass.gltf");
+        }
+        catch (...)
+        {
+            RF_WARN("failed to load hex highlight model");
+        }
     }
 
     void GameLayer::OnDetach()
     {
-        RF_INFO("GameLayer detached");
+        RF_INFO("gameLayer detached");
     }
 
     void GameLayer::OnUpdate(Timestep ts)
     {
+        mTime += ts;
+        mPulseIntensity = 0.7f + 0.3f * std::sin(mTime * 3.0f);
+
         mCameraController.OnUpdate(ts);
+
+        UpdateHoveredHex();
 
         RenderCommand::SetClearColor({ 0.1f, 0.1f, 0.15f, 1.0f });
         RenderCommand::Clear();
@@ -59,6 +76,21 @@ namespace RF
 
         mBuildingManager->DrawBuildings(mShader);
 
+        if (mHoveredHex.has_value())
+        {
+            DrawHexHighlight(mHoveredHex.value(), glm::vec3(1.0f, 1.0f, 0.5f), 0.05f);
+        }
+
+        if (mSelectionManager->HasSelection())
+        {
+            DrawHexHighlight(mSelectionManager->GetSelectedHex(), glm::vec3(0.2f, 0.8f, 1.0f), 0.1f);
+        }
+
+        if (mSelectionManager->IsInPlacementMode() && mHoveredHex.has_value())
+        {
+            DrawGhostBuilding();
+        }
+
         Renderer::EndScene();
     }
 
@@ -73,6 +105,8 @@ namespace RF
     {
         EventDispatcher dispatcher(event);
         dispatcher.Dispatch<MouseButtonPressedEvent>(RF_BIND_EVENT_FN(OnMouseButtonPressed));
+        dispatcher.Dispatch<MouseMovedEvent>(RF_BIND_EVENT_FN(OnMouseMoved));
+        dispatcher.Dispatch<KeyPressedEvent>(RF_BIND_EVENT_FN(OnKeyPressed));
 
         mCameraController.OnEvent(event);
     }
@@ -118,59 +152,131 @@ namespace RF
         return false;
     }
 
+    bool GameLayer::OnMouseMoved(MouseMovedEvent& event)
+    {
+        return false;
+    }
+
+    bool GameLayer::OnKeyPressed(KeyPressedEvent& event)
+    {
+        if (event.GetKeyCode() == Key::Escape)
+        {
+            if (mSelectionManager->IsInPlacementMode())
+            {
+                mSelectionManager->ClearPlacementMode();
+                mGhostBuildingModel.reset();
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     void GameLayer::RenderBuildingMenu()
     {
-        ImGui::SetNextWindowPos(ImVec2(10, 180), ImGuiCond_FirstUseEver);
-        ImGui::Begin("Buildings", nullptr, ImGuiWindowFlags_AlwaysAutoResize);
+        ImGui::SetNextWindowPos(ImVec2(10, 200), ImGuiCond_FirstUseEver);
+        ImGui::Begin("buildings", nullptr, ImGuiWindowFlags_AlwaysAutoResize);
 
         if (mSelectionManager->IsInPlacementMode())
         {
             ImGui::TextColored(ImVec4(1.0f, 1.0f, 0.0f, 1.0f),
-                              "Placement Mode: %s",
+                              "placement mode: %s",
                               BuildingTypeToString(mSelectionManager->GetPlacementType()));
-            ImGui::Text("Click on a hex to place");
+            ImGui::Text("click on a hex to place");
 
-            if (ImGui::Button("Cancel"))
+            if (mHoveredHex.has_value())
+            {
+                if (mGhostBuildingValid)
+                {
+                    ImGui::TextColored(ImVec4(0.0f, 1.0f, 0.0f, 1.0f), "✓ valid placement");
+                }
+                else
+                {
+                    ImGui::TextColored(ImVec4(1.0f, 0.0f, 0.0f, 1.0f), "✗ cannot place here");
+                }
+            }
+
+            ImGui::Separator();
+
+            if (ImGui::Button("cancel (ESC)"))
             {
                 mSelectionManager->ClearPlacementMode();
+                mGhostBuildingModel.reset();
             }
         }
         else
         {
-            ImGui::Text("Select a building to place:");
+            ImGui::Text("select a building to place:");
             ImGui::Separator();
 
             for (const auto& def : mBuildingManager->GetAllDefinitions())
             {
                 ImGui::PushID(static_cast<int>(def.Type));
 
+                bool canAfford = true;
+                for (const auto& cost : def.Cost.Resources)
+                {
+                    if (!mResourceManager->HasResource(cost.Type, cost.Amount))
+                    {
+                        canAfford = false;
+                        break;
+                    }
+                }
+
+                if (!canAfford)
+                {
+                    ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.3f, 0.3f, 0.3f, 1.0f));
+                }
+
                 if (ImGui::Button(def.Name.c_str(), ImVec2(150, 0)))
                 {
-                    mSelectionManager->SetPlacementMode(def.Type);
+                    if (canAfford)
+                    {
+                        mSelectionManager->SetPlacementMode(def.Type);
+                    }
+                }
+
+                if (!canAfford)
+                {
+                    ImGui::PopStyleColor();
                 }
 
                 ImGui::SameLine();
                 ImGui::Text("-");
                 ImGui::SameLine();
 
+                // show cost
                 std::string costStr;
                 for (size_t i = 0; i < def.Cost.Resources.size(); i++)
                 {
                     const auto& cost = def.Cost.Resources[i];
-                    costStr += std::to_string(cost.Amount) + " " + ResourceTypeToString(cost.Type);
-                    if (i < def.Cost.Resources.size() - 1)
+                    bool hasEnough = mResourceManager->HasResource(cost.Type, cost.Amount);
+
+                    if (!hasEnough)
                     {
-                        costStr += ", ";
+                        ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 0.3f, 0.3f, 1.0f));
+                    }
+
+                    ImGui::SameLine();
+                    ImGui::Text("%d %s", cost.Amount, ResourceTypeToString(cost.Type));
+
+                    if (!hasEnough)
+                    {
+                        ImGui::PopStyleColor();
                     }
                 }
-                ImGui::TextDisabled("%s", costStr.c_str());
+
+                if (ImGui::IsItemHovered())
+                {
+                    ImGui::SetTooltip("%s", def.Description.c_str());
+                }
 
                 ImGui::PopID();
             }
         }
 
         ImGui::Separator();
-        ImGui::Text("Buildings: %zu", mBuildingManager->GetAllBuildings().size());
+        ImGui::Text("buildings: %zu", mBuildingManager->GetAllBuildings().size());
 
         ImGui::End();
     }
@@ -178,17 +284,17 @@ namespace RF
     void GameLayer::RenderResourceDisplay()
     {
         ImGui::SetNextWindowPos(ImVec2(10, 10), ImGuiCond_FirstUseEver);
-        ImGui::Begin("Resources", nullptr, ImGuiWindowFlags_AlwaysAutoResize);
+        ImGui::Begin("resources", nullptr, ImGuiWindowFlags_AlwaysAutoResize);
 
-        ImGui::Text("Wood:  %d", mResourceManager->GetResourceAmount(ResourceType::Wood));
-        ImGui::Text("Stone: %d", mResourceManager->GetResourceAmount(ResourceType::Stone));
-        ImGui::Text("Food:  %d", mResourceManager->GetResourceAmount(ResourceType::Food));
-        ImGui::Text("Gold:  %d", mResourceManager->GetResourceAmount(ResourceType::Gold));
-        ImGui::Text("Iron:  %d", mResourceManager->GetResourceAmount(ResourceType::Iron));
+        ImGui::Text("wood:  %d", mResourceManager->GetResourceAmount(ResourceType::Wood));
+        ImGui::Text("stone: %d", mResourceManager->GetResourceAmount(ResourceType::Stone));
+        ImGui::Text("food:  %d", mResourceManager->GetResourceAmount(ResourceType::Food));
+        ImGui::Text("gold:  %d", mResourceManager->GetResourceAmount(ResourceType::Gold));
+        ImGui::Text("iron:  %d", mResourceManager->GetResourceAmount(ResourceType::Iron));
 
         ImGui::Separator();
 
-        if (ImGui::Button("Add Resources (Cheat)"))
+        if (ImGui::Button("add resources (cheat)"))
         {
             mResourceManager->AddResource(ResourceType::Wood, 100);
             mResourceManager->AddResource(ResourceType::Stone, 50);
@@ -202,40 +308,133 @@ namespace RF
 
     void GameLayer::RenderDebugInfo()
     {
-        ImGui::SetNextWindowPos(ImVec2(ImGui::GetIO().DisplaySize.x - 250, 10), ImGuiCond_FirstUseEver);
+        ImGui::SetNextWindowPos(ImVec2(ImGui::GetIO().DisplaySize.x - 280, 10), ImGuiCond_FirstUseEver);
         ImGui::Begin("Debug Info");
 
-        ImGui::Text("FPS: %.1f", ImGui::GetIO().Framerate);
+        ImGui::Text("FPS: %.1f (%.2f ms)", ImGui::GetIO().Framerate, 1000.0f / ImGui::GetIO().Framerate);
 
         auto cameraPos = mCameraController.GetCamera().GetPosition();
-        ImGui::Text("Camera: (%.1f, %.1f, %.1f)", cameraPos.x, cameraPos.y, cameraPos.z);
+        ImGui::Text("camera: (%.1f, %.1f, %.1f)", cameraPos.x, cameraPos.y, cameraPos.z);
 
         ImGui::Separator();
+
+        if (mHoveredHex.has_value())
+        {
+            ImGui::TextColored(ImVec4(1.0f, 1.0f, 0.0f, 1.0f), "hover: (%d, %d)", mHoveredHex.value().q, mHoveredHex.value().r);
+        }
 
         if (mSelectionManager->HasSelection())
         {
             auto selected = mSelectionManager->GetSelectedHex();
-            ImGui::Text("Selected Hex: (%d, %d)", selected.q, selected.r);
+            ImGui::Text("selected: (%d, %d)", selected.q, selected.r);
 
             auto* building = mBuildingManager->GetBuildingAt(selected);
             if (building)
             {
-                ImGui::Text("Building: %s", building->GetName().c_str());
+                ImGui::Text("building: %s", building->GetName().c_str());
             }
-        }
-        else
-        {
-            ImGui::Text("No selection");
         }
 
         ImGui::Separator();
 
-        ImGui::Text("Controls:");
-        ImGui::BulletText("WASD - Move camera");
-        ImGui::BulletText("Q/E - Move up/down");
-        ImGui::BulletText("Right Mouse - Rotate");
-        ImGui::BulletText("Left Click - Select/Place");
+        ImGui::Text("controls:");
+        ImGui::BulletText("WASD - move camera");
+        ImGui::BulletText("Q/E - move up/down");
+        ImGui::BulletText("Right Mouse - rotate");
+        ImGui::BulletText("Left Click - select/place");
+        ImGui::BulletText("ESC - cancel placement");
 
         ImGui::End();
+    }
+
+    void GameLayer::UpdateHoveredHex()
+    {
+        auto& window = Application::Get().GetWindow();
+        auto mousePos = Input::GetMousePosition();
+
+        mHoveredHex = mSelectionManager->GetHexAtScreenPosition(
+            mousePos.x, mousePos.y,
+            window.GetWidth(), window.GetHeight(),
+            mCameraController.GetCamera(),
+            *mHexMap
+        );
+
+        if (mSelectionManager->IsInPlacementMode() && mHoveredHex.has_value())
+        {
+            mGhostBuildingValid = mBuildingManager->CanPlaceBuilding(
+                mSelectionManager->GetPlacementType(),
+                mHoveredHex.value()
+            );
+
+            auto* def = mBuildingManager->GetBuildingDefinition(mSelectionManager->GetPlacementType());
+            if (def)
+            {
+                for (const auto& cost : def->Cost.Resources)
+                {
+                    if (!mResourceManager->HasResource(cost.Type, cost.Amount))
+                    {
+                        mGhostBuildingValid = false;
+                        break;
+                    }
+                }
+            }
+
+            if (def && (!mGhostBuildingModel || mGhostBuildingModel.use_count() == 0))
+            {
+                try
+                {
+                    mGhostBuildingModel = CreateRef<Model>(def->ModelPath);
+                }
+                catch (...)
+                {
+                    RF_WARN("failed to load ghost building model");
+                }
+            }
+        }
+    }
+
+    void GameLayer::DrawHexHighlight(const HexCoordinate& coord, const glm::vec3& color, f32 elevation)
+    {
+        if (!mHexHighlightModel) return;
+
+        glm::vec3 worldPos = coord.ToWorldPosition();
+        worldPos.y = elevation;
+
+        glm::mat4 transform = glm::translate(glm::mat4(1.0f), worldPos);
+        transform = glm::scale(transform, glm::vec3(1.05f, 1.0f, 1.05f)); // Slightly larger
+
+        RenderCommand::SetBlend(true);
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+        mHighlightShader->Bind();
+        mHighlightShader->SetFloat3("uHighlightColor", color);
+        mHighlightShader->SetFloat("uPulseIntensity", mPulseIntensity);
+
+        mHexHighlightModel->Draw(mHighlightShader, transform);
+
+        RenderCommand::SetBlend(false);
+    }
+
+    void GameLayer::DrawGhostBuilding()
+    {
+        if (!mGhostBuildingModel || !mHoveredHex.has_value()) return;
+
+        glm::vec3 worldPos = mHoveredHex.value().ToWorldPosition();
+        worldPos.y = 0.0f;
+
+        glm::mat4 transform = glm::translate(glm::mat4(1.0f), worldPos);
+
+        RenderCommand::SetBlend(true);
+
+        mTranslucentShader->Bind();
+        mTranslucentShader->SetFloat3("uLightPos", glm::vec3(10.0f, 20.0f, 10.0f));
+        mTranslucentShader->SetFloat3("uLightColor", glm::vec3(1.0f, 1.0f, 1.0f));
+        mTranslucentShader->SetFloat3("uObjectColor", glm::vec3(0.5f, 0.7f, 1.0f));
+        mTranslucentShader->SetFloat("uAlpha", 0.5f);
+        mTranslucentShader->SetInt("uIsValid", mGhostBuildingValid ? 1 : 0);
+
+        mGhostBuildingModel->Draw(mTranslucentShader, transform);
+
+        RenderCommand::SetBlend(false);
     }
 } // namespace RF
