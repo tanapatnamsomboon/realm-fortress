@@ -50,12 +50,18 @@ add_executable(realm-fortress
 
         # game
         src/game/application_impl.cpp
+        src/game/building.cpp
+        src/game/building.h
         src/game/game_layer.cpp
         src/game/game_layer.h
         src/game/hex_coordinate.cpp
         src/game/hex_coordinate.h
         src/game/hex_map.cpp
         src/game/hex_map.h
+        src/game/resource_type.cpp
+        src/game/resource_type.h
+        src/game/selection.cpp
+        src/game/selection.h
 
         # imgui
         src/imgui/imgui_layer.cpp
