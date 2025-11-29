@@ -13,6 +13,7 @@
 #include "core/logger.h"
 #include "events/event.h"
 #include "events/application_event.h"
+#include "imgui/imgui_layer.h"
 
 namespace RF
 {
@@ -69,6 +70,8 @@ namespace RF
         bool mMinimized{ false };
         LayerStack mLayerStack;
         f32 mLastFrameTime{ 0.0f };
+
+        ImGuiLayer* mImGuiLayer;
 
     private:
         static Application* sInstance;

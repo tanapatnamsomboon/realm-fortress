@@ -24,6 +24,9 @@ namespace RF
         mWindow->SetEventCallback(RF_BIND_EVENT_FN(Application::OnEvent));
 
         Renderer::Init();
+
+        mImGuiLayer = new ImGuiLayer();
+        PushLayer(mImGuiLayer);
     }
 
     Application::~Application()
@@ -43,6 +46,11 @@ namespace RF
             {
                 for (Layer* layer : mLayerStack)
                     layer->OnUpdate(timestep);
+
+                mImGuiLayer->Begin();
+                for (Layer* layer : mLayerStack)
+                    layer->OnImGuiRender();
+                mImGuiLayer->End();
             }
 
             mWindow->OnUpdate();
