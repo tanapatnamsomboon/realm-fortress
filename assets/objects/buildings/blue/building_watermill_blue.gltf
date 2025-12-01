@@ -123,9 +123,9 @@
         {
             "bufferView" : 4,
             "componentType" : 5126,
-            "count" : 2227,
+            "count" : 2421,
             "max" : [
-                0.489999920129776,
+                0.6428607106208801,
                 1.2180038690567017,
                 0.8659927845001221
             ],
@@ -139,19 +139,19 @@
         {
             "bufferView" : 5,
             "componentType" : 5126,
-            "count" : 2227,
+            "count" : 2421,
             "type" : "VEC2"
         },
         {
             "bufferView" : 6,
             "componentType" : 5126,
-            "count" : 2227,
+            "count" : 2421,
             "type" : "VEC3"
         },
         {
             "bufferView" : 7,
             "componentType" : 5123,
-            "count" : 3939,
+            "count" : 4323,
             "type" : "SCALAR"
         }
     ],
@@ -182,26 +182,26 @@
         },
         {
             "buffer" : 0,
-            "byteLength" : 26724,
+            "byteLength" : 29052,
             "byteOffset" : 32192,
             "target" : 34962
         },
         {
             "buffer" : 0,
-            "byteLength" : 17816,
-            "byteOffset" : 58916,
+            "byteLength" : 19368,
+            "byteOffset" : 61244,
             "target" : 34962
         },
         {
             "buffer" : 0,
-            "byteLength" : 26724,
-            "byteOffset" : 76732,
+            "byteLength" : 29052,
+            "byteOffset" : 80612,
             "target" : 34962
         },
         {
             "buffer" : 0,
-            "byteLength" : 7878,
-            "byteOffset" : 103456,
+            "byteLength" : 8646,
+            "byteOffset" : 109664,
             "target" : 34963
         }
     ],
@@ -213,7 +213,7 @@
     ],
     "buffers" : [
         {
-            "byteLength" : 111336,
+            "byteLength" : 118312,
             "uri" : "building_watermill_blue.bin"
         }
     ]
