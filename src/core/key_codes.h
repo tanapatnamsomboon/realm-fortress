@@ -8,7 +8,7 @@
 
 #include <cstdint>
 
-namespace RF
+namespace RealmFortress
 {
     using KeyCode = uint16_t;
 

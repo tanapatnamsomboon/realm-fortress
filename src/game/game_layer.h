@@ -7,14 +7,16 @@
 #pragma once
 
 #include "core/layer.h"
-#include "game/hex_map.h"
-#include "game/building.h"
-#include "game/resource_type.h"
+#include "game/hex/hex_map.h"
+#include "game/building/building.h"
+#include "game/unit/unit.h"
+#include "game/resource/resource_type.h"
 #include "game/selection.h"
+#include "game/faction.h"
 #include "scene/camera_controller.h"
 #include "renderer/shader.h"
 
-namespace RF
+namespace RealmFortress
 {
     class GameLayer final : public Layer
     {
@@ -34,16 +36,25 @@ namespace RF
         bool OnMouseMoved(class MouseMovedEvent& event);
         bool OnKeyPressed(class KeyPressedEvent& event);
 
+        void RenderMainUI();
         void RenderBuildingMenu();
+        void RenderUnitPanel();
         void RenderResourceDisplay();
+        void RenderMinimap();
         void RenderDebugInfo();
 
         void UpdateHoveredHex();
         void DrawHexHighlight(const HexCoordinate& coord, const glm::vec3& color, f32 elevation = 0.05f);
+        void DrawSelectionRing(const glm::vec3& worldPos, f32 radius, const glm::vec3& color);
+        void DrawUnitPath(const Unit* unit);
         void DrawGhostBuilding();
+
+        void HandleLeftClick();
+        void HandleRightClick();
 
     private:
         CameraController mCameraController;
+        Faction mPlayerFaction = Faction::Player;
 
         Ref<Shader> mShader;
         Ref<Shader> mHighlightShader;
@@ -51,16 +62,21 @@ namespace RF
 
         Scope<HexMap> mHexMap;
         Scope<BuildingManager> mBuildingManager;
+        Scope<UnitManager> mUnitManager;
         Scope<ResourceManager> mResourceManager;
         Scope<SelectionManager> mSelectionManager;
 
         std::optional<HexCoordinate> mHoveredHex;
         Ref<Model> mHexHighlightModel;
-
         Ref<Model> mGhostBuildingModel;
-        bool mGhostBuildingValid;
+        bool mGhostBuildingValid = false;
 
-        f32 mTime;
-        f32 mPulseIntensity;
+        f32 mTime = 0.0f;
+        f32 mPulseIntensity = 1.0f;
+
+        bool mShowBuildingMenu = true;
+        bool mShowUnitPanel = true;
+        bool mShowResourcePanel = true;
+        bool mShowDebugInfo = true;
     };
 }

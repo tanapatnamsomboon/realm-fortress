@@ -12,7 +12,7 @@
 #include <imgui_impl_opengl3.h>
 #include <GLFW/glfw3.h>
 
-namespace RF
+namespace RealmFortress
 {
     ImGuiLayer::ImGuiLayer()
         : Layer("ImGuiLayer")
@@ -86,4 +86,4 @@ namespace RF
             glfwMakeContextCurrent(backup_current_context);
         }
     }
-} // namespace RF
+} // namespace RealmFortress

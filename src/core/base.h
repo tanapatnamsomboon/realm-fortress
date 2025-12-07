@@ -36,7 +36,7 @@
 
 #define RF_BIND_EVENT_FN(fn) [this](auto&&... args) -> decltype(auto) { return this->fn(std::forward<decltype(args)>(args)...); }
 
-namespace RF
+namespace RealmFortress
 {
     using i8  = int8_t;
     using i16 = int16_t;
@@ -71,6 +71,6 @@ namespace RF
     {
         return std::make_shared<T>(std::forward<Args>(args)...);
     }
-} // namespace RF
+} // namespace RealmFortress
 
 

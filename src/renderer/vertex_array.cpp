@@ -8,7 +8,7 @@
 #include "core/logger.h"
 #include <glad/gl.h>
 
-namespace RF
+namespace RealmFortress
 {
     static GLenum ShaderDataTypeToOpenGLBaseType(ShaderDataType type)
     {
@@ -86,4 +86,4 @@ namespace RF
     {
         return CreateRef<VertexArray>();
     }
-} // namespace RF
+} // namespace RealmFortress

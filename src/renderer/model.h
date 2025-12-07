@@ -13,7 +13,7 @@
 #include <string>
 #include <vector>
 
-namespace RF
+namespace RealmFortress
 {
     class Model
     {
@@ -36,4 +36,4 @@ namespace RF
         std::vector<Mesh> mMeshes;
         std::string mDirectory;
     };
-} // namespace RF
+} // namespace RealmFortress

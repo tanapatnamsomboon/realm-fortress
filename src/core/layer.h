@@ -11,7 +11,7 @@
 #include "events/event.h"
 #include <vector>
 
-namespace RF
+namespace RealmFortress
 {
     class Layer
     {
@@ -30,4 +30,4 @@ namespace RF
     protected:
         std::string mDebugName;
     };
-} // namespace RF
+} // namespace RealmFortress

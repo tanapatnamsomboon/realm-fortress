@@ -11,7 +11,7 @@
 #include "core/mouse_codes.h"
 #include "events/mouse_event.h"
 
-namespace RF
+namespace RealmFortress
 {
     CameraController::CameraController(float aspectRatio)
         : mAspectRatio(aspectRatio), mCamera(mFOV, aspectRatio, mNearClip, mFarClip)
@@ -82,4 +82,4 @@ namespace RF
         mCameraTranslationSpeed = std::max(mCameraTranslationSpeed, 0.25f);
         return false;
     }
-} // namespace RF
+} // namespace RealmFortress

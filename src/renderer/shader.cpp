@@ -11,7 +11,7 @@
 #include <fstream>
 #include <sstream>
 
-namespace RF
+namespace RealmFortress
 {
     static GLenum ShaderTypeFromString(const std::string& type)
     {
@@ -210,4 +210,4 @@ namespace RF
         mUniformLocationCache[name] = location;
         return location;
     }
-} // namespace RF
+} // namespace RealmFortress

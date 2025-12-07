@@ -8,7 +8,7 @@
 
 #include "core/base.h"
 
-namespace RF
+namespace RealmFortress
 {
     class Timestep
     {
@@ -26,4 +26,4 @@ namespace RF
     private:
         float mTime;
     };
-} // namespace RF
+} // namespace RealmFortress

@@ -10,13 +10,13 @@
 
 int main(int argc, char** argv)
 {
-    RF::Logger::Init();
+    RealmFortress::Logger::Init();
 
     RF_CORE_INFO("==============");
     RF_CORE_INFO("Realm Fortress");
     RF_CORE_INFO("==============");
 
-    auto app = RF::CreateApplication({ argc, argv });
+    auto app = RealmFortress::CreateApplication({ argc, argv });
 
     app->Run();
 

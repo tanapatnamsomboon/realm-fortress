@@ -13,7 +13,7 @@
 
 struct GLFWwindow;
 
-namespace RF
+namespace RealmFortress
 {
     class GraphicsContext;
 
@@ -74,4 +74,4 @@ namespace RF
 
         WindowData mData;
     };
-} // namespace RF
+} // namespace RealmFortress

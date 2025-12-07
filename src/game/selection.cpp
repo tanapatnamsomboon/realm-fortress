@@ -6,21 +6,19 @@
 
 #include "core/pch.h"
 #include "selection.h"
-#include "game/hex_map.h"
+#include "hex/hex_map.h"
 #include "core/logger.h"
+#include "hex/hex_utils.h"
 
-namespace RF
+namespace RealmFortress
 {
-    SelectionManager::SelectionManager()
-        : mPlacementMode(false), mPlacementBuildingType(BuildingType::None)
-    {
-    }
+    SelectionManager::SelectionManager() = default;
 
     std::optional<HexCoordinate> SelectionManager::GetHexAtScreenPosition(
         f32 screenX, f32 screenY,
         u32 screenWidth, u32 screenHeight,
         const PerspectiveCamera& camera,
-        const HexMap& hexMap)
+        const HexMap& map)
     {
         f32 ndcX = (2.0f * screenX) / screenWidth - 1.0f;
         f32 ndcY = 1.0f - (2.0f * screenY) / screenHeight;
@@ -78,7 +76,7 @@ namespace RF
 
         HexCoordinate coord(rq, rr);
 
-        if (hexMap.HasTile(coord))
+        if (map.HasTile(coord))
         {
             return coord;
         }
@@ -89,19 +87,24 @@ namespace RF
     void SelectionManager::SelectHex(const HexCoordinate& coord)
     {
         mSelectedHex = coord;
-        RF_TRACE("selected hex: ({0}, {1})", coord.q, coord.r);
+        mSelectionType = SelectionType::Hex;
+        ClearUnitSelection();
+        RF_TRACE("Selected hex: ({}, {})", coord.q, coord.r);
     }
 
     void SelectionManager::ClearSelection()
     {
         mSelectedHex.reset();
+        mSelectionType = SelectionType::None;
+        ClearUnitSelection();
     }
 
     void SelectionManager::SetPlacementMode(BuildingType type)
     {
         mPlacementMode = true;
         mPlacementBuildingType = type;
-        RF_INFO("entered placement mode for {0}", BuildingTypeToString(type));
+        ClearSelection();
+        RF_INFO("Entered placement mode for {}", BuildingTypeToString(type));
     }
 
     void SelectionManager::ClearPlacementMode()
@@ -109,4 +112,108 @@ namespace RF
         mPlacementMode = false;
         mPlacementBuildingType = BuildingType::None;
     }
-} // namespace RF
+
+    void SelectionManager::SelectUnit(Unit* unit)
+    {
+        if (!unit) return;
+
+        ClearUnitSelection();
+        mSelectedUnits.push_back(unit);
+        unit->SetSelected(true);
+        mSelectionType = SelectionType::Unit;
+
+        RF_TRACE("Selected unit: {} at ({}, {})", unit->GetName(), unit->GetPosition().q, unit->GetPosition().r);
+    }
+
+    void SelectionManager::SelectUnits(const std::vector<Unit*>& units)
+    {
+        ClearUnitSelection();
+
+        for (Unit* unit : units)
+        {
+            if (unit)
+            {
+                mSelectedUnits.push_back(unit);
+                unit->SetSelected(true);
+            }
+        }
+
+        if (!mSelectedUnits.empty())
+        {
+            mSelectionType = mSelectedUnits.size() == 1 ? SelectionType::Unit : SelectionType::MultipleUnits;
+            RF_TRACE("Selected {} units", mSelectedUnits.size());
+        }
+    }
+
+    void SelectionManager::AddUnitToSelection(Unit* unit)
+    {
+        if (!unit) return;
+
+        auto it = std::ranges::find(mSelectedUnits, unit);
+        if (it != mSelectedUnits.end())
+            return;
+
+        mSelectedUnits.push_back(unit);
+        unit->SetSelected(true);
+        mSelectionType = mSelectedUnits.size() == 1 ? SelectionType::Unit : SelectionType::MultipleUnits;
+    }
+
+    void SelectionManager::RemoveUnitFromSelection(Unit* unit)
+    {
+        if (!unit) return;
+
+        auto it = std::ranges::find(mSelectedUnits, unit);
+        if (it != mSelectedUnits.end())
+        {
+            unit->SetSelected(false);
+            mSelectedUnits.erase(it);
+        }
+
+        if (mSelectedUnits.empty())
+        {
+            mSelectionType = SelectionType::None;
+        }
+        else if (mSelectedUnits.size() == 1)
+        {
+            mSelectionType = SelectionType::Unit;
+        }
+    }
+
+    void SelectionManager::ClearUnitSelection()
+    {
+        for (Unit* unit : mSelectedUnits)
+        {
+            if (unit)
+                unit->SetSelected(false);
+        }
+        mSelectedUnits.clear();
+    }
+
+    void SelectionManager::IssueUnitMoveOrder(const HexCoordinate& target, const HexMap& map)
+    {
+        for (Unit* unit : mSelectedUnits)
+        {
+            if (unit)
+            {
+                unit->MoveTo(target, map);
+            }
+        }
+
+        RF_TRACE("Move order issued to {} units", mSelectedUnits.size());
+    }
+
+    void SelectionManager::IssueUnitAttackOrder(Unit* target)
+    {
+        if (!target) return;
+
+        for (Unit* unit : mSelectedUnits)
+        {
+            if (unit)
+            {
+                unit->Attack(target);
+            }
+        }
+
+        RF_TRACE("Attack order issued to {} units", mSelectedUnits.size());
+    }
+} // namespace RealmFortress

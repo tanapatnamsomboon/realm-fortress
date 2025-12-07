@@ -9,7 +9,7 @@
 #include "events/event.h"
 #include "core/mouse_codes.h"
 
-namespace RF
+namespace RealmFortress
 {
     class MouseMovedEvent final : public Event
     {
@@ -94,4 +94,4 @@ namespace RF
 
         EVENT_CLASS_TYPE(MouseButtonReleased)
     };
-} // namespace RF
+} // namespace RealmFortress

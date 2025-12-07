@@ -8,7 +8,7 @@
 #include "core/application.h"
 #include <GLFW/glfw3.h>
 
-namespace RF
+namespace RealmFortress
 {
     bool Input::IsKeyPressed(KeyCode key)
     {
@@ -41,4 +41,4 @@ namespace RF
     {
         return GetMousePosition().y;
     }
-} // namespace RF
+} // namespace RealmFortress

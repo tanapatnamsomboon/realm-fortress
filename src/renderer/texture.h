@@ -10,7 +10,7 @@
 #include <string>
 #include <glad/gl.h>
 
-namespace RF
+namespace RealmFortress
 {
     class Texture
     {
@@ -57,4 +57,4 @@ namespace RF
         u32 mRendererID;
         GLenum mInternalFormat, mDataFormat;
     };
-} // namespace RF
+} // namespace RealmFortress

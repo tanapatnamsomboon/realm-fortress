@@ -8,7 +8,7 @@
 #include "core/application.h"
 #include "game/game_layer.h"
 
-namespace RF
+namespace RealmFortress
 {
     Application* CreateApplication(const ApplicationCommandLineArgs& args)
     {
@@ -19,4 +19,4 @@ namespace RF
         app->PushLayer(new GameLayer());
         return app;
     }
-} // namespace RF
+} // namespace RealmFortress

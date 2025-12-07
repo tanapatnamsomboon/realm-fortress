@@ -10,7 +10,7 @@
 #define GLM_ENABLE_EXPERIMENTAL
 #include <glm/gtx/quaternion.hpp>
 
-namespace RF
+namespace RealmFortress
 {
     // Orthographic Camera
     OrthographicCamera::OrthographicCamera(f32 left, f32 right, f32 bottom, f32 top)
@@ -91,4 +91,4 @@ namespace RF
         mViewProjectionMatrix = mProjection * mViewMatrix;
     }
 
-} // namespace RF
+} // namespace RealmFortress

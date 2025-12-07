@@ -10,7 +10,7 @@
 #include "renderer/buffer.h"
 #include <vector>
 
-namespace RF
+namespace RealmFortress
 {
     class VertexArray
     {
@@ -35,4 +35,4 @@ namespace RF
         std::vector<Ref<VertexBuffer>> mVertexBuffers;
         Ref<IndexBuffer> mIndexBuffer;
     };
-} // namespace RF
+} // namespace RealmFortress

@@ -9,7 +9,7 @@
 #include "events/event.h"
 #include "core/key_codes.h"
 
-namespace RF
+namespace RealmFortress
 {
     class KeyEvent : public Event
     {
@@ -79,4 +79,4 @@ namespace RF
 
         EVENT_CLASS_TYPE(KeyTyped)
     };
-} // namespace RF
+} // namespace RealmFortress

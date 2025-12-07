@@ -8,7 +8,7 @@
 
 #include "events/event.h"
 
-namespace RF
+namespace RealmFortress
 {
     class WindowResizeEvent final : public Event
     {
@@ -70,4 +70,4 @@ namespace RF
         EVENT_CLASS_TYPE(AppRender)
         EVENT_CLASS_CATEGORY(EventCategoryApplication)
     };
-} // namespace RF
+} // namespace RealmFortress

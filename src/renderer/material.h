@@ -11,7 +11,7 @@
 #include "renderer/texture.h"
 #include <glm/glm.hpp>
 
-namespace RF
+namespace RealmFortress
 {
     class Material
     {
@@ -32,4 +32,4 @@ namespace RF
         std::unordered_map<std::string, glm::vec3> mFloat3s;
         std::unordered_map<std::string, glm::vec4> mFloat4s;
     };
-} // namespace RF
+} // namespace RealmFortress

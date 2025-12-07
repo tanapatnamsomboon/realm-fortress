@@ -11,7 +11,7 @@
 #include <string>
 #include <unordered_map>
 
-namespace RF
+namespace RealmFortress
 {
     /**
      * @class Shader
@@ -68,4 +68,4 @@ namespace RF
     private:
         std::unordered_map<std::string, Ref<Shader>> mShaders;
     };
-} // namespace RF
+} // namespace RealmFortress

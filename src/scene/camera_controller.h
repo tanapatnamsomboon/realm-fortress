@@ -10,7 +10,7 @@
 #include "core/timestep.h"
 #include "events/event.h"
 
-namespace RF
+namespace RealmFortress
 {
     class CameraController
     {
@@ -45,4 +45,4 @@ namespace RF
         glm::vec2 mLastMousePosition = { 0.0f, 0.0f };
 
     };
-} // namespace RF
+} // namespace RealmFortress

@@ -11,7 +11,7 @@
 #include "core/mouse_codes.h"
 #include <glm/glm.hpp>
 
-namespace RF
+namespace RealmFortress
 {
     /**
      * @class Input
@@ -28,4 +28,4 @@ namespace RF
         static f32 GetMouseX();
         static f32 GetMouseY();
     };
-} // namespace RF
+} // namespace RealmFortress

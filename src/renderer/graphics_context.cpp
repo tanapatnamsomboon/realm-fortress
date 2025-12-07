@@ -10,12 +10,12 @@
 #include <glad/gl.h>
 #include <GLFW/glfw3.h>
 
-namespace RF
+namespace RealmFortress
 {
     GraphicsContext::GraphicsContext(GLFWwindow* window)
         : mWindow(window)
     {
-        RF_CORE_ASSERT(window, "window handle is null!");
+        RF_CORE_ASSERT(window, "Window handle is null!");
     }
 
     void GraphicsContext::Init()
@@ -23,12 +23,12 @@ namespace RF
         glfwMakeContextCurrent(mWindow);
 
         int status = gladLoadGL(glfwGetProcAddress);
-        RF_CORE_ASSERT(status, "failed to initialize GLAD!");
+        RF_CORE_ASSERT(status, "Failed to initialize GLAD!");
 
         RF_CORE_INFO("OpenGL info:");
-        RF_CORE_INFO("  vendor: {0}", reinterpret_cast<const char*>(glGetString(GL_VENDOR)));
-        RF_CORE_INFO("  renderer: {0}", reinterpret_cast<const char*>(glGetString(GL_RENDERER)));
-        RF_CORE_INFO("  version: {0}", reinterpret_cast<const char*>(glGetString(GL_VERSION)));
+        RF_CORE_INFO("  Vendor: {0}", reinterpret_cast<const char*>(glGetString(GL_VENDOR)));
+        RF_CORE_INFO("  Renderer: {0}", reinterpret_cast<const char*>(glGetString(GL_RENDERER)));
+        RF_CORE_INFO("  Version: {0}", reinterpret_cast<const char*>(glGetString(GL_VERSION)));
 
         int major;
         int minor;
@@ -42,4 +42,4 @@ namespace RF
     {
         glfwSwapBuffers(mWindow);
     }
-} // namespace RF
+} // namespace RealmFortress

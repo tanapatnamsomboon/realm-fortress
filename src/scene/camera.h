@@ -9,7 +9,7 @@
 #include "core/base.h"
 #include <glm/glm.hpp>
 
-namespace RF
+namespace RealmFortress
 {
     /**
      * @class Camera
@@ -80,4 +80,4 @@ namespace RF
         glm::vec3 mPosition = { 0.0f, 0.0f, 0.0f };
         glm::vec3 mRotation = { 0.0f, 0.0f, 0.0f };
     };
-} // RF
+} // RealmFortress

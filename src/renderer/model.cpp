@@ -11,7 +11,7 @@
 #include <assimp/scene.h>
 #include <assimp/postprocess.h>
 
-namespace RF
+namespace RealmFortress
 {
     Model::Model(const std::string& path)
     {
@@ -137,4 +137,4 @@ namespace RF
         }
         return textures;
     }
-} // namespace RF
+} // namespace RealmFortress

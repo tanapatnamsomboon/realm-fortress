@@ -11,7 +11,7 @@
 #include "events/key_event.h"
 #include "events/mouse_event.h"
 
-namespace RF
+namespace RealmFortress
 {
     class ImGuiLayer : public Layer
     {
@@ -32,4 +32,4 @@ namespace RF
         bool mBlockEvent = true;
         f32 mTime = 0.0f;
     };
-} // namespace RF
+} // namespace RealmFortress

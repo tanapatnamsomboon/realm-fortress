@@ -13,7 +13,7 @@
 #include <glm/glm.hpp>
 #include <vector>
 
-namespace RF
+namespace RealmFortress
 {
     struct Vertex
     {

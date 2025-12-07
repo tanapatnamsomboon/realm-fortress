@@ -3,7 +3,7 @@ cmake_minimum_required(VERSION 3.25)
 project(realm-fortress
         VERSION 0.1.0
         LANGUAGES C CXX
-        DESCRIPTION "Realm Fortress"
+        DESCRIPTION "Realm Fortress - Medieval RTS Game"
 )
 
 set(CMAKE_CXX_STANDARD 23)
@@ -21,10 +21,12 @@ include(config/compiler.cmake)
 include(config/precompile.cmake)
 include(config/vendor.cmake)
 
-add_executable(realm-fortress
+# Source Files
+set(REALM_FORTRESS_SOURCES
+        # Entry Point
         src/core/entry_point.cpp
 
-        # core
+        # Core
         src/core/application.cpp
         src/core/application.h
         src/core/base.h
@@ -42,32 +44,13 @@ add_executable(realm-fortress
         src/core/window.cpp
         src/core/window.h
 
-        # events
+        # Event
         src/events/application_event.h
         src/events/event.h
         src/events/key_event.h
         src/events/mouse_event.h
 
-        # game
-        src/game/application_impl.cpp
-        src/game/building.cpp
-        src/game/building.h
-        src/game/game_layer.cpp
-        src/game/game_layer.h
-        src/game/hex_coordinate.cpp
-        src/game/hex_coordinate.h
-        src/game/hex_map.cpp
-        src/game/hex_map.h
-        src/game/resource_type.cpp
-        src/game/resource_type.h
-        src/game/selection.cpp
-        src/game/selection.h
-
-        # imgui
-        src/imgui/imgui_layer.cpp
-        src/imgui/imgui_layer.h
-
-        # renderer
+        # Renderer
         src/renderer/buffer.cpp
         src/renderer/buffer.h
         src/renderer/graphics_context.cpp
@@ -78,11 +61,8 @@ add_executable(realm-fortress
         src/renderer/mesh.h
         src/renderer/model.cpp
         src/renderer/model.h
-        src/renderer/render_command.cpp
-        src/renderer/render_command.h
         src/renderer/renderer.cpp
         src/renderer/renderer.h
-        src/renderer/renderer_api.h
         src/renderer/shader.cpp
         src/renderer/shader.h
         src/renderer/texture.cpp
@@ -90,33 +70,108 @@ add_executable(realm-fortress
         src/renderer/vertex_array.cpp
         src/renderer/vertex_array.h
 
-        # scene
+        # Scene
         src/scene/camera.cpp
         src/scene/camera.h
         src/scene/camera_controller.cpp
         src/scene/camera_controller.h
+
+        # ImGui
+        src/imgui/imgui_layer.cpp
+        src/imgui/imgui_layer.h
+
+        # Game
+        src/game/application_impl.cpp
+        src/game/game_layer.cpp
+        src/game/game_layer.h
+
+        # Game - Hex
+        src/game/hex/hex_constants.h
+        src/game/hex/hex_coordinate.cpp
+        src/game/hex/hex_coordinate.h
+        src/game/hex/hex_map.cpp
+        src/game/hex/hex_map.h
+        src/game/hex/hex_utils.cpp
+        src/game/hex/hex_utils.h
+        src/game/hex/hex_pathfinding.cpp
+        src/game/hex/hex_pathfinding.h
+
+        # Game - Building
+        src/game/building/building.cpp
+        src/game/building/building.h
+
+        # Game - Unit
+        src/game/unit/unit.cpp
+        src/game/unit/unit.h
+
+        # Game - Resource
+        src/game/resource/resource_type.cpp
+        src/game/resource/resource_type.h
+
+        # Game - Gameplay
+        src/game/faction.h
+        src/game/selection.cpp
+        src/game/selection.h
 )
+
+add_executable(realm-fortress ${REALM_FORTRESS_SOURCES})
 
 target_link_libraries(realm-fortress PRIVATE
-        glfw
         glad
-        glm::glm
-        assimp::assimp
+        glfw
+        glm
         imgui
+        spdlog
+        assimp
         stb
-        spdlog::spdlog
-)
-
-target_precompile_headers(realm-fortress PRIVATE
-    src/core/pch.h
 )
 
 target_include_directories(realm-fortress PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/src
 )
 
+if(WIN32)
+    target_compile_definitions(realm-fortress PRIVATE
+            RF_PLATFORM_WINDOWS
+            NOMINMAX
+            WIN32_LEAN_AND_MEAN
+    )
+elseif(APPLE)
+    target_compile_definitions(realm-fortress PRIVATE
+            RF_PLATFORM_MACOS
+    )
+elseif(UNIX)
+    target_compile_definitions(realm-fortress PRIVATE
+            RF_PLATFORM_LINUX
+    )
+endif()
+
+if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+    target_compile_definitions(realm-fortress PRIVATE
+            RF_DEBUG
+    )
+else()
+    target_compile_definitions(realm-fortress PRIVATE
+            RF_RELEASE
+            NDEBUG
+    )
+endif()
+
 add_custom_command(TARGET realm-fortress POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy_directory
         ${CMAKE_SOURCE_DIR}/assets
         $<TARGET_FILE_DIR:realm-fortress>/assets
+        COMMENT "Copying assets to build directory"
 )
+
+source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} FILES ${REALM_FORTRESS_SOURCES})
+
+message(STATUS "===========================================")
+message(STATUS "Realm Fortress Configuration")
+message(STATUS "===========================================")
+message(STATUS "Version: ${PROJECT_VERSION}")
+message(STATUS "Build Type: ${CMAKE_BUILD_TYPE}")
+message(STATUS "C++ Standard: ${CMAKE_CXX_STANDARD}")
+message(STATUS "Platform: ${CMAKE_SYSTEM_NAME}")
+message(STATUS "Compiler: ${CMAKE_CXX_COMPILER_ID}")
+message(STATUS "===========================================")

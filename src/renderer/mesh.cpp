@@ -8,7 +8,7 @@
 #include "core/logger.h"
 #include "renderer/renderer.h"
 
-namespace RF
+namespace RealmFortress
 {
     Mesh::Mesh(const std::vector<Vertex>& vertices, const std::vector<u32>& indices, const std::vector<Ref<Texture2D>>& textures)
         : mVertices(vertices), mIndices(indices), mTextures(textures)
@@ -24,7 +24,7 @@ namespace RF
             shader->SetInt("uTexture", i);
         }
 
-        Renderer::Submit(shader, mVertexArray, transform);
+        Renderer::DrawMesh(shader, mVertexArray, transform);
     }
 
     void Mesh::SetupMesh()
@@ -42,4 +42,4 @@ namespace RF
         mIndexBuffer = IndexBuffer::Create(mIndices.data(), mIndices.size());
         mVertexArray->SetIndexBuffer(mIndexBuffer);
     }
-} // namespace RF
+} // namespace RealmFortress

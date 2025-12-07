@@ -12,7 +12,7 @@
 #include "events/mouse_event.h"
 #include <GLFW/glfw3.h>
 
-namespace RF
+namespace RealmFortress
 {
     static u8 sGLFWWindowCount = 0;
 
@@ -180,4 +180,4 @@ namespace RF
         mData.mVSync = enabled;
         glfwSwapInterval(mData.mVSync ? 1 : 0);
     }
-} // namespace RF
+} // namespace RealmFortress
