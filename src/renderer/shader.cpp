@@ -210,4 +210,41 @@ namespace RealmFortress
         mUniformLocationCache[name] = location;
         return location;
     }
+
+    void ShaderLibrary::Add(const std::string& name, const Ref<Shader>& shader)
+    {
+        RF_CORE_ASSERT(!Exists(name), "Shader already exists!");
+        mShaders[name] = shader;
+    }
+
+    void ShaderLibrary::Add(const Ref<Shader>& shader)
+    {
+        auto& name = shader->GetName();
+        Add(name, shader);
+    }
+
+    Ref<Shader> ShaderLibrary::Load(const std::string& filepath)
+    {
+        auto shader = Shader::Create(filepath);
+        Add(shader);
+        return shader;
+    }
+
+    Ref<Shader> ShaderLibrary::Load(const std::string& name, const std::string& filepath)
+    {
+        auto shader = Shader::Create(filepath);
+        Add(name, shader);
+        return shader;
+    }
+
+    Ref<Shader> ShaderLibrary::Get(const std::string& name)
+    {
+        RF_CORE_ASSERT(Exists(name), "Shader not found!");
+        return mShaders[name];
+    }
+
+    bool ShaderLibrary::Exist(const std::string& name) const
+    {
+        return mShaders.contains(name);
+    }
 } // namespace RealmFortress

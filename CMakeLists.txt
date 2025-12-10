@@ -85,33 +85,23 @@ set(REALM_FORTRESS_SOURCES
         src/game/game_layer.cpp
         src/game/game_layer.h
 
-        # Game - Hex
-        src/game/hex/hex_constants.h
-        src/game/hex/hex_coordinate.cpp
-        src/game/hex/hex_coordinate.h
-        src/game/hex/hex_map.cpp
-        src/game/hex/hex_map.h
-        src/game/hex/hex_utils.cpp
-        src/game/hex/hex_utils.h
-        src/game/hex/hex_pathfinding.cpp
-        src/game/hex/hex_pathfinding.h
+        # Game - System
+        src/game/system/constants.h
+        src/game/system/coordinate.cpp
+        src/game/system/coordinate.h
+        src/game/system/map.cpp
+        src/game/system/map.h
+        src/game/system/tile.cpp
+        src/game/system/tile.h
+        src/game/system/utils.h
 
         # Game - Building
-        src/game/building/building.cpp
-        src/game/building/building.h
 
         # Game - Unit
-        src/game/unit/unit.cpp
-        src/game/unit/unit.h
 
         # Game - Resource
-        src/game/resource/resource_type.cpp
-        src/game/resource/resource_type.h
 
         # Game - Gameplay
-        src/game/faction.h
-        src/game/selection.cpp
-        src/game/selection.h
 )
 
 add_executable(realm-fortress ${REALM_FORTRESS_SOURCES})

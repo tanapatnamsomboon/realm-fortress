@@ -6,10 +6,8 @@
 
 #pragma once
 
-#include "core/base.h"
 #include "core/timestep.h"
 #include "events/event.h"
-#include <vector>
 
 namespace RealmFortress
 {
