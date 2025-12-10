@@ -8,6 +8,7 @@
 #include "game_layer.h"
 #include "core/logger.h"
 #include "core/application.h"
+#include "core/input.h"
 #include "renderer/renderer.h"
 #include <imgui.h>
 
@@ -17,6 +18,7 @@ namespace RealmFortress
         : Layer("GameLayer")
     {
         mShader = mShaderLibrary.Load("assets/shaders/basic.glsl");
+        mHighlightShader = mShaderLibrary.Load("assets/shaders/highlight.glsl");
 
         auto& window = Application::Get().GetWindow();
         f32 aspectRatio = static_cast<f32>(window.GetWidth()) / static_cast<f32>(window.GetHeight());
@@ -46,21 +48,43 @@ namespace RealmFortress
     {
         Layer::OnUpdate(ts);
 
-        Renderer::BeginFrame();
+        mTime += ts;
 
+        Renderer::BeginFrame();
         Renderer::Clear();
 
         mCameraController->OnUpdate(ts);
+
+        UpdateSelection();
 
         Renderer::BeginScene(mCameraController->GetCamera());
 
         mShader->Bind();
         mShader->SetMat4("uViewProjection", Renderer::GetViewProjectionMatrix());
 
-        mMap.Draw(mShader);
+        mHighlightShader->Bind();
+        mHighlightShader->SetMat4("uViewProjection", Renderer::GetViewProjectionMatrix());
+
+        std::unordered_set<Coordinate> highlighted_tiles;
+        if (mSelection.HasHover())
+        {
+            highlighted_tiles.insert(mSelection.GetHovered().value());
+        }
+        if (mSelection.HasSelection())
+        {
+            highlighted_tiles.insert(mSelection.GetSelected().value());
+        }
+
+        glm::vec3 highlight_color(1.0f, 1.0f, 0.0f);
+
+        if (mSelection.HasSelection())
+        {
+            highlight_color = glm::vec3(0.0f, 1.0f, 0.5f);
+        }
+
+        mMap.DrawWithHighlight(mShader, mHighlightShader, highlighted_tiles, highlight_color, mTime);
 
         Renderer::EndScene();
-
         Renderer::EndFrame();
     }
 
@@ -68,13 +92,44 @@ namespace RealmFortress
     {
         ImGui::Begin("Game Info");
 
+        // Selection info
+        ImGui::Text("Selection");
+
+        if (mSelection.HasHover())
+        {
+            auto hovered = mSelection.GetHovered().value();
+            ImGui::Text("  Hovered: (%d, %d)", hovered.Q, hovered.R);
+
+            if (auto* tile = mMap.GetTile(hovered))
+            {
+                ImGui::Text("  Type: %s", TileTypeToString(tile->GetType()));
+                ImGui::Text("  Elevation: %d", tile->GetElevation());
+            }
+        }
+        else
+        {
+            ImGui::Text("  Hovered: None");
+        }
+
+        if (mSelection.HasSelection())
+        {
+            auto selected = mSelection.GetSelected().value();
+            ImGui::Text("  Selected: (%d, %d)", selected.Q, selected.R);
+        }
+        else
+        {
+            ImGui::Text("  Selected: None");
+        }
+
+        ImGui::Separator();
+
         // Camera info
-        auto camPos = mCameraController->GetCamera().GetPosition();
-        auto camRot = mCameraController->GetCamera().GetRotation();
+        auto cam_pos = mCameraController->GetCamera().GetPosition();
+        auto cam_pot = mCameraController->GetCamera().GetRotation();
 
         ImGui::Text("Camera");
-        ImGui::Text("  Position: (%.2f, %.2f, %.2f)", camPos.x, camPos.y, camPos.z);
-        ImGui::Text("  Rotation: (%.2f, %.2f, %.2f)", camRot.x, camRot.y, camRot.z);
+        ImGui::Text("  Position: (%.2f, %.2f, %.2f)", cam_pos.x, cam_pos.y, cam_pos.z);
+        ImGui::Text("  Rotation: (%.2f, %.2f, %.2f)", cam_pot.x, cam_pot.y, cam_pot.z);
 
         ImGui::Separator();
 
@@ -106,6 +161,18 @@ namespace RealmFortress
 
     bool GameLayer::OnMouseButtonPressed(MouseButtonPressedEvent& event)
     {
+        if (event.GetMouseButton() == Mouse::ButtonLeft)
+        {
+            if (mSelection.HasHover())
+            {
+                mSelection.Select(mSelection.GetHovered().value());
+                RF_CORE_INFO("Selected: ({}, {})",
+                    mSelection.GetSelected().value().Q,
+                    mSelection.GetSelected().value().R);
+            }
+            return true;
+        }
+
         return false;
     }
 
@@ -114,8 +181,29 @@ namespace RealmFortress
         return false;
     }
 
+
     bool GameLayer::OnKeyPressed(KeyPressedEvent& event)
     {
         return false;
+    }
+
+    void GameLayer::UpdateSelection()
+    {
+        glm::vec2 mouse_pos = Input::GetMousePosition();
+
+        auto& window = Application::Get().GetWindow();
+        u32 width = window.GetWidth();
+        u32 height = window.GetHeight();
+
+        auto picked_tile = mPicker.Pick(mouse_pos.x, mouse_pos.y, width, height, mCameraController->GetCamera());
+
+        if (picked_tile.has_value() && mMap.HasTile(picked_tile.value()))
+        {
+            mSelection.SetHovered(picked_tile.value());
+        }
+        else
+        {
+            mSelection.ClearHover();
+        }
     }
 } // namespace RealmFortress

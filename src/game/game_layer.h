@@ -12,7 +12,10 @@
 #include "events/event.h"
 #include "events/mouse_event.h"
 #include "events/key_event.h"
+#include "events/application_event.h"
 #include "game/system/map.h"
+#include "game/system/picker.h"
+#include "game/system/selection.h"
 
 namespace RealmFortress
 {
@@ -34,12 +37,19 @@ namespace RealmFortress
         bool OnMouseMoved(MouseMovedEvent& event);
         bool OnKeyPressed(KeyPressedEvent& event);
 
+        void UpdateSelection();
+
     private:
         ShaderLibrary mShaderLibrary;
         Ref<Shader> mShader;
+        Ref<Shader> mHighlightShader;
 
         Ref<CameraController> mCameraController;
 
         Map mMap;
+
+        Picker mPicker;
+        Selection mSelection;
+        f32 mTime{ 0.0f };
     };
 }

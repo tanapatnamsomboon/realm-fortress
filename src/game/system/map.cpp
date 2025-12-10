@@ -9,7 +9,7 @@
 
 namespace RealmFortress
 {
-    void Map::GenerateFlat(i32 radius, TileType defaultType)
+    void Map::GenerateFlat(i32 radius, TileType default_type)
     {
         Clear();
 
@@ -20,14 +20,14 @@ namespace RealmFortress
 
             for (i32 r = r1; r <= r2; ++r)
             {
-                AddTile(Coordinate(q, r), defaultType, 0);
+                AddTile(Coordinate(q, r), default_type, 0);
             }
         }
 
         RF_CORE_INFO("Generated flat map with radius {} ({} tiles)", radius, mTiles.size());
     }
 
-    void Map::GenerateRectangle(i32 width, i32 height, TileType defaultType)
+    void Map::GenerateRectangle(i32 width, i32 height, TileType default_type)
     {
         Clear();
 
@@ -35,14 +35,14 @@ namespace RealmFortress
         {
             for (i32 r = 0; r < height; ++r)
             {
-                AddTile(Coordinate(q, r), defaultType, 0);
+                AddTile(Coordinate(q, r), default_type, 0);
             }
         }
 
         RF_CORE_INFO("Generated rectangular map {}x{} ({} tiles)", width, height, mTiles.size());
     }
 
-    void Map::GenerateHexagon(i32 radius, TileType defaultType)
+    void Map::GenerateHexagon(i32 radius, TileType default_type)
     {
         Clear();
 
@@ -53,7 +53,7 @@ namespace RealmFortress
 
             for (i32 r = r1; r <= r2; ++r)
             {
-                AddTile(Coordinate(q, r), defaultType, 0);
+                AddTile(Coordinate(q, r), default_type, 0);
             }
         }
 
@@ -176,6 +176,51 @@ namespace RealmFortress
             if (model)
             {
                 model->Draw(shader, tile.GetTransform());
+            }
+        }
+    }
+
+    void Map::DrawWithHighlight(
+        const Ref<Shader>& base_shader,
+        const Ref<Shader>& highlight_shader,
+        const std::unordered_set<Coordinate>& highlighted_hexes,
+        const glm::vec3& highlight_color, f32 time
+    )
+    {
+        if (!base_shader || !highlight_shader)
+        {
+            RF_CORE_ERROR("Cannot draw map: shader is null");
+            return;
+        }
+
+        base_shader->Bind();
+
+        for (auto& [coord, tile] : mTiles)
+        {
+            if (highlighted_hexes.contains(coord))
+                continue;
+
+            auto model = tile.GetModel();
+            if (model)
+            {
+                model->Draw(base_shader, tile.GetTransform());
+            }
+        }
+
+        if (!highlighted_hexes.empty())
+        {
+            highlight_shader->Bind();
+            highlight_shader->SetFloat3("uHighlightColor", highlight_color);
+            highlight_shader->SetFloat("uPulseTime", time);
+            highlight_shader->SetFloat("uHighlightIntensity", 0.5f);
+
+            for (const auto& coord : highlighted_hexes)
+            {
+                auto* tile = GetTile(coord);
+                if (tile && tile->GetModel())
+                {
+                    tile->GetModel()->Draw(highlight_shader, tile->GetTransform());
+                }
             }
         }
     }

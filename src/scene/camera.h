@@ -26,14 +26,16 @@ namespace RealmFortress
         {
         }
 
+        const glm::vec3& GetPosition() const { return mPosition; }
         const glm::mat4& GetProjection() const { return mProjection; }
         const glm::mat4& GetViewMatrix() const { return mViewMatrix; }
         const glm::mat4& GetViewProjectionMatrix() const { return mViewProjectionMatrix; }
 
     protected:
-        glm::mat4 mProjection = glm::mat4(1.0f);
-        glm::mat4 mViewMatrix = glm::mat4(1.0f);
-        glm::mat4 mViewProjectionMatrix = glm::mat4(1.0f);
+        glm::vec3 mPosition{ 0.0f, 0.0f, 0.0f };
+        glm::mat4 mProjection{ 1.0f };
+        glm::mat4 mViewMatrix{ 1.0f };
+        glm::mat4 mViewProjectionMatrix{ 1.0f };
     };
 
     class OrthographicCamera final : public Camera
@@ -43,7 +45,6 @@ namespace RealmFortress
 
         void SetProjection(f32 left, f32 right, f32 bottom, f32 top);
 
-        const glm::vec3& GetPosition() const { return mPosition; }
         void SetPosition(const glm::vec3& position) { mPosition = position; RecalculateViewMatrix(); }
 
         f32 GetRotation() const { return mRotation; }
@@ -52,21 +53,19 @@ namespace RealmFortress
     private:
         void RecalculateViewMatrix();
 
-        glm::vec3 mPosition = { 0.0f, 0.0f, 0.0f };
         f32 mRotation = 0.0f;
     };
 
     class PerspectiveCamera final : public Camera
     {
     public:
-        PerspectiveCamera(f32 fov, f32 aspectRatio, f32 nearClip, f32 farClip);
+        PerspectiveCamera(f32 fov, f32 aspect_ratio, f32 near_clip, f32 far_clip);
 
-        void SetProjection(f32 fov, f32 aspectRatio, f32 nearClip, f32 farClip);
+        void SetProjection(f32 fov, f32 aspect_ratio, f32 near_clip, f32 far_clip);
 
         void SetPosition(const glm::vec3& position) { mPosition = position; RecalculateViewMatrix(); }
         void SetRotation(const glm::vec3& rotation) { mRotation = rotation; RecalculateViewMatrix(); }
 
-        const glm::vec3& GetPosition() const { return mPosition; }
         const glm::vec3& GetRotation() const { return mRotation; }
 
         glm::vec3 GetForward() const;
@@ -77,7 +76,6 @@ namespace RealmFortress
         void RecalculateViewMatrix();
 
     private:
-        glm::vec3 mPosition = { 0.0f, 0.0f, 0.0f };
         glm::vec3 mRotation = { 0.0f, 0.0f, 0.0f };
     };
 } // RealmFortress

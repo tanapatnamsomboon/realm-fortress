@@ -21,9 +21,9 @@ namespace RealmFortress
         Map() = default;
         ~Map() = default;
 
-        void GenerateFlat(i32 radius, TileType defaultType = TileType::Grass);
-        void GenerateRectangle(i32 width, i32 height, TileType defaultType = TileType::Grass);
-        void GenerateHexagon(i32 radius, TileType defaultType = TileType::Grass);
+        void GenerateFlat(i32 radius, TileType default_type = TileType::Grass);
+        void GenerateRectangle(i32 width, i32 height, TileType default_type = TileType::Grass);
+        void GenerateHexagon(i32 radius, TileType default_type = TileType::Grass);
 
         void AddTile(const Coordinate& coord, TileType type, i32 elevation = 0);
         void RemoveTile(const Coordinate& coord);
@@ -38,6 +38,14 @@ namespace RealmFortress
         std::vector<Tile*> GetTilesInLine(const Coordinate& start, const Coordinate& end);
 
         void Draw(const Ref<Shader>& shader);
+
+        void DrawWithHighlight(
+            const Ref<Shader>& base_shader,
+            const Ref<Shader>& highlight_shader,
+            const std::unordered_set<Coordinate>& highlighted_hexes,
+            const glm::vec3& highlight_color,
+            f32 time
+        );
 
         usize GetTileCount() const { return mTiles.size(); }
         const std::unordered_map<Coordinate, Tile>& GetTiles() const { return mTiles; }
