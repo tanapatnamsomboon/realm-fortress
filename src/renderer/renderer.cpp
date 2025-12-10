@@ -17,6 +17,21 @@ namespace RealmFortress
     {
         RF_CORE_INFO("Initializing Renderer (OpenGL)");
 
+        glEnable(GL_MULTISAMPLE);
+        GLint samples = 0;
+        glGetIntegerv(GL_SAMPLES, &samples);
+        if (samples > 0)
+        {
+            RF_CORE_INFO("MSAA enabled: {}x samples", samples);
+        }
+        else
+        {
+            RF_CORE_WARN("MSAA not available on this system");
+        }
+
+        glHint(GL_POLYGON_SMOOTH_HINT, GL_NICEST);
+        glHint(GL_LINE_SMOOTH_HINT, GL_NICEST);
+
         // enable blending for transparency
         glEnable(GL_BLEND);
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
@@ -29,6 +44,8 @@ namespace RealmFortress
         glEnable(GL_CULL_FACE);
         glCullFace(GL_BACK);
         glFrontFace(GL_CCW);
+
+        glEnable(GL_LINE_SMOOTH);
     }
 
     void Renderer::Shutdown()
@@ -65,7 +82,7 @@ namespace RealmFortress
     {
         shader->Bind();
         shader->SetMat4("uViewProjection", sSceneData.ViewProjectionMatrix);
-        shader->SetMat4("uTransform", transform);
+        shader->SetMat4("uModel", transform);
 
         DrawIndexed(vertexArray);
     }

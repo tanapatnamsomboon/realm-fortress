@@ -33,9 +33,11 @@ namespace RealmFortress
             aiProcess_Triangulate |
             aiProcess_CalcTangentSpace |
             aiProcess_FlipUVs |
-            aiProcess_GenNormals |
+            aiProcess_GenSmoothNormals |
             aiProcess_ImproveCacheLocality |
-            aiProcess_JoinIdenticalVertices);
+            aiProcess_JoinIdenticalVertices |
+            aiProcess_OptimizeMeshes |
+            aiProcess_ValidateDataStructure);
 
         if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode)
         {
