@@ -73,8 +73,8 @@ set(REALM_FORTRESS_SOURCES
         # Scene
         src/scene/camera.cpp
         src/scene/camera.h
-        src/scene/camera_controller.cpp
-        src/scene/camera_controller.h
+        src/game/system/camera_controller.cpp
+        src/game/system/camera_controller.h
 
         # ImGui
         src/imgui/imgui_layer.cpp

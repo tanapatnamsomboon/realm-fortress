@@ -7,7 +7,7 @@
 #pragma once
 
 #include "core/layer.h"
-#include "scene/camera_controller.h"
+#include "system/camera_controller.h"
 #include "renderer/shader.h"
 #include "events/event.h"
 #include "events/mouse_event.h"
