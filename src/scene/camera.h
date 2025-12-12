@@ -41,6 +41,7 @@ namespace RealmFortress
     class OrthographicCamera final : public Camera
     {
     public:
+        OrthographicCamera() = default;
         OrthographicCamera(f32 left, f32 right, f32 bottom, f32 top);
 
         void SetProjection(f32 left, f32 right, f32 bottom, f32 top);
@@ -59,6 +60,7 @@ namespace RealmFortress
     class PerspectiveCamera final : public Camera
     {
     public:
+        PerspectiveCamera() = default;
         PerspectiveCamera(f32 fov, f32 aspect_ratio, f32 near_clip, f32 far_clip);
 
         void SetProjection(f32 fov, f32 aspect_ratio, f32 near_clip, f32 far_clip);

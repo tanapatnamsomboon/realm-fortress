@@ -12,10 +12,10 @@
 #include "events/event.h"
 #include "events/mouse_event.h"
 #include "events/key_event.h"
-#include "events/application_event.h"
 #include "game/system/map.h"
 #include "game/system/picker.h"
 #include "game/system/selection.h"
+#include "game/building/building_manager.h"
 
 namespace RealmFortress
 {
@@ -51,5 +51,10 @@ namespace RealmFortress
         Picker mPicker;
         Selection mSelection;
         f32 mTime{ 0.0f };
+
+        BuildingManager mBuildingManager;
+        bool mBuildMode{ false };
+        BuildingType mSelectedBuildingType{ BuildingType::TownHall };
+        Faction mPlayerFaction{ Faction::Blue };
     };
 }

@@ -73,8 +73,6 @@ set(REALM_FORTRESS_SOURCES
         # Scene
         src/scene/camera.cpp
         src/scene/camera.h
-        src/game/system/camera_controller.cpp
-        src/game/system/camera_controller.h
 
         # ImGui
         src/imgui/imgui_layer.cpp
@@ -86,6 +84,8 @@ set(REALM_FORTRESS_SOURCES
         src/game/game_layer.h
 
         # Game - System
+        src/game/system/camera_controller.cpp
+        src/game/system/camera_controller.h
         src/game/system/constants.h
         src/game/system/coordinate.cpp
         src/game/system/coordinate.h
@@ -100,6 +100,10 @@ set(REALM_FORTRESS_SOURCES
         src/game/system/utils.h
 
         # Game - Building
+        src/game/building/building.cpp
+        src/game/building/building.h
+        src/game/building/building_manager.cpp
+        src/game/building/building_manager.h
 
         # Game - Unit
 

@@ -84,67 +84,101 @@ namespace RealmFortress
 
         mMap.DrawWithHighlight(mShader, mHighlightShader, highlighted_tiles, highlight_color, mTime);
 
+        mBuildingManager.Draw(mShader);
+
+        if (mBuildMode && mSelection.HasHover())
+        {
+            auto coord = mSelection.GetHovered().value();
+            mBuildingManager.SetPreview(mSelectedBuildingType, mPlayerFaction, coord);
+            mBuildingManager.DrawPreview(mHighlightShader, mMap, mTime);
+        }
+
         Renderer::EndScene();
         Renderer::EndFrame();
     }
 
     void GameLayer::OnImGuiRender()
     {
-        ImGui::Begin("Game Info");
+            ImGui::Begin("Game Info");
 
-        // Selection info
-        ImGui::Text("Selection");
+            // Camera info
+            auto cam_pos = mCameraController->GetCamera().GetPosition();
+            auto cam_pot = mCameraController->GetCamera().GetRotation();
 
-        if (mSelection.HasHover())
-        {
-            auto hovered = mSelection.GetHovered().value();
-            ImGui::Text("  Hovered: (%d, %d)", hovered.Q, hovered.R);
+            ImGui::Text("Camera");
+            ImGui::Text("  Position: (%.2f, %.2f, %.2f)", cam_pos.x, cam_pos.y, cam_pos.z);
+            ImGui::Text("  Rotation: (%.2f, %.2f, %.2f)", cam_pot.x, cam_pot.y, cam_pot.z);
 
-            if (auto* tile = mMap.GetTile(hovered))
+        ImGui::Separator();
+
+            // Selection info
+            ImGui::Text("Selection");
+
+            if (mSelection.HasHover())
             {
-                ImGui::Text("  Type: %s", TileTypeToString(tile->GetType()));
-                ImGui::Text("  Elevation: %d", tile->GetElevation());
+                auto hovered = mSelection.GetHovered().value();
+                ImGui::Text("  Hovered: (%d, %d)", hovered.Q, hovered.R);
+
+                if (auto* tile = mMap.GetTile(hovered))
+                {
+                    ImGui::Text("  Type: %s", TileTypeToString(tile->GetType()));
+                    ImGui::Text("  Elevation: %d", tile->GetElevation());
+                }
             }
-        }
-        else
-        {
-            ImGui::Text("  Hovered: None");
-        }
+            else
+            {
+                ImGui::Text("  Hovered: None");
+            }
 
-        if (mSelection.HasSelection())
-        {
-            auto selected = mSelection.GetSelected().value();
-            ImGui::Text("  Selected: (%d, %d)", selected.Q, selected.R);
-        }
-        else
-        {
-            ImGui::Text("  Selected: None");
-        }
-
-        ImGui::Separator();
-
-        // Camera info
-        auto cam_pos = mCameraController->GetCamera().GetPosition();
-        auto cam_pot = mCameraController->GetCamera().GetRotation();
-
-        ImGui::Text("Camera");
-        ImGui::Text("  Position: (%.2f, %.2f, %.2f)", cam_pos.x, cam_pos.y, cam_pos.z);
-        ImGui::Text("  Rotation: (%.2f, %.2f, %.2f)", cam_pot.x, cam_pot.y, cam_pot.z);
+            if (mSelection.HasSelection())
+            {
+                auto selected = mSelection.GetSelected().value();
+                ImGui::Text("  Selected: (%d, %d)", selected.Q, selected.R);
+            }
+            else
+            {
+                ImGui::Text("  Selected: None");
+            }
 
         ImGui::Separator();
 
-        // Map info
-        ImGui::Text("Hex Map");
-        ImGui::Text("  Tiles: %zu", mMap.GetTileCount());
+            ImGui::Text("Buildings");
+            ImGui::Text("  Count: %zu", mBuildingManager.GetBuildingCount());
+            ImGui::Text("  Build Mode: %s", mBuildMode ? "ON" : "OFF");
+
+            if (mBuildMode)
+            {
+                ImGui::Text("  Type: %s", BuildingTypeToString(mSelectedBuildingType));
+                ImGui::Text("  Faction: %s", FactionToString(mPlayerFaction));
+            }
 
         ImGui::Separator();
 
-        // Renderer stats
-        auto& stats = Renderer::GetStats();
-        ImGui::Text("Renderer Stats");
-        ImGui::Text("  Draw Calls: %u", stats.DrawCalls);
-        ImGui::Text("  Vertices: %u", stats.VertexCount);
-        ImGui::Text("  Triangles: %u", stats.TriangleCount);
+            // Controls info
+            ImGui::Text("Controls");
+            ImGui::Text("  WASD - Move camera");
+            ImGui::Text("  Right-click + Drag - Rotate");
+            ImGui::Text("  Mouse Wheel - Zoom");
+            ImGui::Text("  Q/E - Rotate around map");
+            ImGui::Text("  Left-click - Select / Place");
+            ImGui::Text("  B - Toggle build mode");
+            ImGui::Text("  1-5 - Select building (in build)");
+            ImGui::Text("  Escape - Exit build / Clear sel");
+
+        ImGui::Separator();
+
+            // Map info
+            ImGui::Text("Map");
+            ImGui::Text("  Tiles: %zu", mMap.GetTileCount());
+
+        ImGui::Separator();
+
+            // Renderer stats
+            auto& stats = Renderer::GetStats();
+            ImGui::Text("Renderer Stats");
+            ImGui::Text("  Draw Calls: %u", stats.DrawCalls);
+            ImGui::Text("  Vertices: %u", stats.VertexCount);
+            ImGui::Text("  Triangles: %u", stats.TriangleCount);
 
         ImGui::End();
     }
@@ -163,6 +197,16 @@ namespace RealmFortress
     {
         if (event.GetMouseButton() == Mouse::ButtonLeft)
         {
+            if (mBuildMode && mSelection.HasHover())
+            {
+                auto coord = mSelection.GetHovered().value();
+                if (mBuildingManager.PlaceBuilding(mSelectedBuildingType, mPlayerFaction, coord, mMap))
+                {
+                    RF_CORE_INFO("Building placed at ({}, {})", coord.Q, coord.R);
+                }
+                return true;
+            }
+
             if (mSelection.HasHover())
             {
                 mSelection.Select(mSelection.GetHovered().value());
@@ -184,6 +228,39 @@ namespace RealmFortress
 
     bool GameLayer::OnKeyPressed(KeyPressedEvent& event)
     {
+        if (event.GetKeyCode() == Key::Escape)
+        {
+            if (mBuildMode)
+            {
+                mBuildMode = false;
+                mBuildingManager.ClearPreview();
+                RF_CORE_INFO("Exited build mode");
+            }
+            else
+            {
+                mSelection.ClearSelection();
+            }
+            return true;
+        }
+
+        if (event.GetKeyCode() == Key::B)
+        {
+            mBuildMode = !mBuildMode;
+            if (!mBuildMode)
+                mBuildingManager.ClearPreview();
+            RF_CORE_INFO("Build mode: {}", mBuildMode ? "ON" : "OFF");
+            return true;
+        }
+
+        if (mBuildMode)
+        {
+            if (event.GetKeyCode() == Key::D1) mSelectedBuildingType = BuildingType::TownHall;
+            else if (event.GetKeyCode() == Key::D2) mSelectedBuildingType = BuildingType::House;
+            else if (event.GetKeyCode() == Key::D3) mSelectedBuildingType = BuildingType::Barracks;
+            else if (event.GetKeyCode() == Key::D4) mSelectedBuildingType = BuildingType::Farm;
+            else if (event.GetKeyCode() == Key::D5) mSelectedBuildingType = BuildingType::Tower;
+        }
+
         return false;
     }
 
