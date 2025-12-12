@@ -26,7 +26,7 @@ namespace RealmFortress
         Renderer::Init();
 
         mImGuiLayer = new ImGuiLayer();
-        PushLayer(mImGuiLayer);
+        PushOverlay(mImGuiLayer);
     }
 
     Application::~Application()

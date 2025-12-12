@@ -28,7 +28,9 @@ namespace RealmFortress
         io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
         io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
 
-        ImGui::StyleColorsDark();
+        // ImGui::StyleColorsClassic();
+        //ImGui::StyleColorsDark();
+        //ImGui::StyleColorsLight();
         SetDarkThemeColors();
 
         ImGuiStyle& style = ImGui::GetStyle();
