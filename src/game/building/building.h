@@ -19,20 +19,31 @@ namespace RealmFortress
 
         TownHall,
         Castle,
-        House,
-
+        HomeA,
+        HomeB,
         Barracks,
         ArcheryRange,
-        Stables,
-
-        Farm,
+        Blacksmith,
+        Church,
+        Docks,
         LumberMill,
-        Mine,
         Market,
-
-        Wall,
-        Tower,
-        Gate,
+        Mine,
+        Shipyard,
+        Shrine,
+        Stables,
+        Tavern,
+        Tent,
+        Watchtower,
+        Watermill,
+        Well,
+        Windmill,
+        Workshop,
+        TowerA,
+        TowerB,
+        TowerBase,
+        TowerCannon,
+        TowerCatapult,
 
         Count
     };

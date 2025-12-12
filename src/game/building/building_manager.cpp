@@ -7,6 +7,7 @@
 #include "core/pch.h"
 #include "building_manager.h"
 #include "core/logger.h"
+#include "game/system/model_manager.h"
 
 namespace RealmFortress
 {
@@ -31,18 +32,7 @@ namespace RealmFortress
             return false;
 
         Building building(type, faction, coord);
-
-        std::string model_path = BuildingTypeToModelPath(type, faction);
-        try
-        {
-            building.SetModel(CreateRef<Model>(model_path));
-        }
-        catch (const std::exception& e)
-        {
-            RF_CORE_WARN("Failed to load building model: {}", e.what());
-            building.SetModel(nullptr);
-        }
-
+        building.SetModel(GetOrLoadModel(type, faction));
         mBuildings[coord] = std::move(building);
 
         RF_CORE_INFO("Placed {} ({}) at ({}, {})",
@@ -101,17 +91,7 @@ namespace RealmFortress
     void BuildingManager::SetPreview(BuildingType type, Faction faction, const Coordinate& coord)
     {
         Building preview(type, faction, coord);
-
-        std::string model_path = BuildingTypeToModelPath(type, faction);
-        try
-        {
-            preview.SetModel(CreateRef<Model>(model_path));
-        }
-        catch (const std::exception&)
-        {
-            preview.SetModel(nullptr);
-        }
-
+        preview.SetModel(GetOrLoadModel(type, faction));
         mPreviewBuilding = std::move(preview);
     }
 
@@ -143,5 +123,26 @@ namespace RealmFortress
         shader->SetFloat("uPulseTime", time);
 
         model->Draw(shader, preview.GetTransform());
+    }
+
+    Ref<Model> BuildingManager::GetOrLoadModel(BuildingType type, Faction faction) const
+    {
+        u64 key = MakeKey(type, faction);
+        if (auto it = mBuildingModelCache.find(key); it != mBuildingModelCache.end())
+            return it->second;
+
+        std::string model_path = BuildingTypeToModelPath(type, faction);
+        auto model = ModelManager::Load(model_path);
+
+        if (!model)
+            RF_CORE_WARN("Failed to load building model: {}", model_path);
+
+        mBuildingModelCache.emplace(key, model);
+        return model;
+    }
+
+    u64 BuildingManager::MakeKey(BuildingType type, Faction faction)
+    {
+        return static_cast<u64>(type) | (static_cast<u64>(faction) << 32);
     }
 } // namespace RealmFortress

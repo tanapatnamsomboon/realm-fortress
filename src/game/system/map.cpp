@@ -6,6 +6,7 @@
 
 #include "core/pch.h"
 #include "map.h"
+#include "game/system/model_manager.h"
 
 namespace RealmFortress
 {
@@ -64,18 +65,15 @@ namespace RealmFortress
     {
         Tile tile(coord, type, elevation);
 
-        std::string modelPath = TileTypeToModelPath(type);
-        try
-        {
-            tile.SetModel(CreateRef<Model>(modelPath));
-        }
-        catch (const std::exception& e)
-        {
-            RF_CORE_WARN("Failed to load model for tile at ({}, {}): {}", coord.Q, coord.R, e.what());
+        std::string model_path = TileTypeToModelPath(type);
+        auto model = ModelManager::Load(model_path);
 
-            tile.SetModel(nullptr);
+        if (!model)
+        {
+            RF_CORE_WARN("Failed to load model for tile at ({}, {})", coord.Q, coord.R);
         }
 
+        tile.SetModel(model);
         mTiles[coord] = std::move(tile);
     }
 
@@ -223,24 +221,5 @@ namespace RealmFortress
                 }
             }
         }
-    }
-
-    void Map::LoadModelsForAllTiles()
-    {
-        for (auto& [coord, tile] : mTiles)
-        {
-            std::string modelPath = TileTypeToModelPath(tile.GetType());
-            try
-            {
-                tile.SetModel(CreateRef<Model>(modelPath));
-            }
-            catch (const std::exception& e)
-            {
-                RF_CORE_WARN("Failed to load model for tile at ({}, {}): {}", coord.Q, coord.R, e.what());
-                tile.SetModel(nullptr);
-            }
-        }
-
-        RF_CORE_INFO("Loaded models for {} tiles", mTiles.size());
     }
 } // namespace RealmFortress

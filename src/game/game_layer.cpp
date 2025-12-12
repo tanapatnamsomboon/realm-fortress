@@ -225,7 +225,6 @@ namespace RealmFortress
         return false;
     }
 
-
     bool GameLayer::OnKeyPressed(KeyPressedEvent& event)
     {
         if (event.GetKeyCode() == Key::Escape)
@@ -255,10 +254,8 @@ namespace RealmFortress
         if (mBuildMode)
         {
             if (event.GetKeyCode() == Key::D1) mSelectedBuildingType = BuildingType::TownHall;
-            else if (event.GetKeyCode() == Key::D2) mSelectedBuildingType = BuildingType::House;
+            else if (event.GetKeyCode() == Key::D2) mSelectedBuildingType = BuildingType::HomeA;
             else if (event.GetKeyCode() == Key::D3) mSelectedBuildingType = BuildingType::Barracks;
-            else if (event.GetKeyCode() == Key::D4) mSelectedBuildingType = BuildingType::Farm;
-            else if (event.GetKeyCode() == Key::D5) mSelectedBuildingType = BuildingType::Tower;
         }
 
         return false;

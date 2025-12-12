@@ -39,7 +39,13 @@ namespace RealmFortress
         usize GetBuildingCount() const { return mBuildings.size(); }
 
     private:
+        Ref<Model> GetOrLoadModel(BuildingType type, Faction faction) const;
+        static u64 MakeKey(BuildingType type, Faction faction);
+
+    private:
         std::unordered_map<Coordinate, Building> mBuildings;
         std::optional<Building> mPreviewBuilding;
+
+        mutable std::unordered_map<u64, Ref<Model>> mBuildingModelCache;
     };
 } // namespace RealmFortress

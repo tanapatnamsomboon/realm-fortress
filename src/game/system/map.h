@@ -50,8 +50,6 @@ namespace RealmFortress
         usize GetTileCount() const { return mTiles.size(); }
         const std::unordered_map<Coordinate, Tile>& GetTiles() const { return mTiles; }
 
-        void LoadModelsForAllTiles();
-
     private:
         std::unordered_map<Coordinate, Tile> mTiles;
     };

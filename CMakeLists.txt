@@ -91,6 +91,8 @@ set(REALM_FORTRESS_SOURCES
         src/game/system/coordinate.h
         src/game/system/map.cpp
         src/game/system/map.h
+        src/game/system/model_manager.cpp
+        src/game/system/model_manager.h
         src/game/system/picker.cpp
         src/game/system/picker.h
         src/game/system/selection.cpp
