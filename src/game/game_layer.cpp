@@ -23,6 +23,18 @@ namespace RealmFortress
         auto& window = Application::Get().GetWindow();
         f32 aspectRatio = static_cast<f32>(window.GetWidth()) / static_cast<f32>(window.GetHeight());
         mCameraController = CreateRef<CameraController>(aspectRatio);
+
+        mUIManager.GetBuildPanel().SetOnBuildingSelected([this](BuildingType type)
+        {
+            mSelectedBuildingType = type;
+            mBuildMode = true;
+            RF_CORE_INFO("Building selected: {}", BuildingTypeToString(type));
+        });
+
+        mUIManager.GetBuildPanel().SetOnStructureSelected([this](StructureType type) {
+            // TODO: Handle structure selection
+            RF_CORE_INFO("Structure selected");
+        });
     }
 
     void GameLayer::OnAttach()
@@ -85,6 +97,7 @@ namespace RealmFortress
         mMap.DrawWithHighlight(mShader, mHighlightShader, highlighted_tiles, highlight_color, mTime);
 
         mBuildingManager.Draw(mShader);
+        mStructureManager.Draw(mShader);
 
         if (mBuildMode && mSelection.HasHover())
         {
@@ -92,95 +105,51 @@ namespace RealmFortress
             mBuildingManager.SetPreview(mSelectedBuildingType, mPlayerFaction, coord);
             mBuildingManager.DrawPreview(mHighlightShader, mMap, mTime);
         }
+        else
+        {
+            if (!mBuildMode)
+                mBuildingManager.ClearPreview();
+        }
+
+        if (mStructureMode && mSelection.HasHover())
+        {
+            auto coord = mSelection.GetHovered().value();
+            mStructureManager.SetPreview(mSelectedStructureType, coord, 0.0f);
+            mStructureManager.DrawPreview(mHighlightShader, mMap, mTime);
+        }
+        else
+        {
+            if (!mStructureMode)
+                mStructureManager.ClearPreview();
+        }
 
         Renderer::EndScene();
         Renderer::EndFrame();
+
+        auto& debug_panel = mUIManager.GetDebugPanel();
+        debug_panel.SetCamera(&mCameraController->GetCamera());
+        debug_panel.SetTileCount(mMap.GetTileCount());
+        debug_panel.SetBuildingCount(mBuildingManager.GetBuildingCount());
+        debug_panel.SetStructureCount(0);
+
+        if (mSelection.HasSelection())
+        {
+            auto coord = mSelection.GetSelected().value();
+            auto* tile = mMap.GetTile(coord);
+            auto* building = mBuildingManager.GetBuilding(coord);
+
+            mUIManager.GetTileInfoPanel().SetSelectedTile(tile);
+            mUIManager.GetTileInfoPanel().SetSelectedBuilding(building);
+        }
+        else
+        {
+            mUIManager.GetTileInfoPanel().Clear();
+        }
     }
 
     void GameLayer::OnImGuiRender()
     {
-            ImGui::Begin("Game Info");
-
-            // Camera info
-            auto cam_pos = mCameraController->GetCamera().GetPosition();
-            auto cam_pot = mCameraController->GetCamera().GetRotation();
-
-            ImGui::Text("Camera");
-            ImGui::Text("  Position: (%.2f, %.2f, %.2f)", cam_pos.x, cam_pos.y, cam_pos.z);
-            ImGui::Text("  Rotation: (%.2f, %.2f, %.2f)", cam_pot.x, cam_pot.y, cam_pot.z);
-
-        ImGui::Separator();
-
-            // Selection info
-            ImGui::Text("Selection");
-
-            if (mSelection.HasHover())
-            {
-                auto hovered = mSelection.GetHovered().value();
-                ImGui::Text("  Hovered: (%d, %d)", hovered.Q, hovered.R);
-
-                if (auto* tile = mMap.GetTile(hovered))
-                {
-                    ImGui::Text("  Type: %s", TileTypeToString(tile->GetType()));
-                    ImGui::Text("  Elevation: %d", tile->GetElevation());
-                }
-            }
-            else
-            {
-                ImGui::Text("  Hovered: None");
-            }
-
-            if (mSelection.HasSelection())
-            {
-                auto selected = mSelection.GetSelected().value();
-                ImGui::Text("  Selected: (%d, %d)", selected.Q, selected.R);
-            }
-            else
-            {
-                ImGui::Text("  Selected: None");
-            }
-
-        ImGui::Separator();
-
-            ImGui::Text("Buildings");
-            ImGui::Text("  Count: %zu", mBuildingManager.GetBuildingCount());
-            ImGui::Text("  Build Mode: %s", mBuildMode ? "ON" : "OFF");
-
-            if (mBuildMode)
-            {
-                ImGui::Text("  Type: %s", BuildingTypeToString(mSelectedBuildingType));
-                ImGui::Text("  Faction: %s", FactionToString(mPlayerFaction));
-            }
-
-        ImGui::Separator();
-
-            // Controls info
-            ImGui::Text("Controls");
-            ImGui::Text("  WASD - Move camera");
-            ImGui::Text("  Right-click + Drag - Rotate");
-            ImGui::Text("  Mouse Wheel - Zoom");
-            ImGui::Text("  Q/E - Rotate around map");
-            ImGui::Text("  Left-click - Select / Place");
-            ImGui::Text("  B - Toggle build mode");
-            ImGui::Text("  1-5 - Select building (in build)");
-            ImGui::Text("  Escape - Exit build / Clear sel");
-
-        ImGui::Separator();
-
-            // Map info
-            ImGui::Text("Map");
-            ImGui::Text("  Tiles: %zu", mMap.GetTileCount());
-
-        ImGui::Separator();
-
-            // Renderer stats
-            auto& stats = Renderer::GetStats();
-            ImGui::Text("Renderer Stats");
-            ImGui::Text("  Draw Calls: %u", stats.DrawCalls);
-            ImGui::Text("  Vertices: %u", stats.VertexCount);
-            ImGui::Text("  Triangles: %u", stats.TriangleCount);
-
-        ImGui::End();
+        mUIManager.OnRender();
     }
 
     void GameLayer::OnEvent(Event& event)
@@ -197,6 +166,16 @@ namespace RealmFortress
     {
         if (event.GetMouseButton() == Mouse::ButtonLeft)
         {
+            if (mStructureMode && mSelection.HasHover())
+            {
+                auto coord = mSelection.GetHovered().value();
+                if (mStructureManager.PlaceStructure(mSelectedStructureType, coord, 0.0f, mMap))
+                {
+                    RF_CORE_INFO("Structure placed at ({}, {})", coord.Q, coord.R);
+                }
+                return true;
+            }
+
             if (mBuildMode && mSelection.HasHover())
             {
                 auto coord = mSelection.GetHovered().value();
@@ -247,7 +226,26 @@ namespace RealmFortress
             mBuildMode = !mBuildMode;
             if (!mBuildMode)
                 mBuildingManager.ClearPreview();
+            if (mBuildMode && mStructureMode)
+            {
+                mStructureMode = false;
+                mStructureManager.ClearPreview();
+            }
             RF_CORE_INFO("Build mode: {}", mBuildMode ? "ON" : "OFF");
+            return true;
+        }
+
+        if (event.GetKeyCode() == Key::V)
+        {
+            mStructureMode = !mStructureMode;
+            if (!mStructureMode)
+                mStructureManager.ClearPreview();
+            if (mStructureMode && mBuildMode)
+            {
+                mBuildMode = false;
+                mBuildingManager.ClearPreview();
+            }
+            RF_CORE_INFO("Structure mode: {}", mStructureMode ? "ON" : "OFF");
             return true;
         }
 
@@ -257,6 +255,17 @@ namespace RealmFortress
             else if (event.GetKeyCode() == Key::D2) mSelectedBuildingType = BuildingType::HomeA;
             else if (event.GetKeyCode() == Key::D3) mSelectedBuildingType = BuildingType::Barracks;
         }
+        else if (mStructureMode)
+        {
+            if (event.GetKeyCode() == Key::D4) mSelectedStructureType = StructureType::WallStraight;
+            else if (event.GetKeyCode() == Key::D5) mSelectedStructureType = StructureType::FenceWoodStraight;
+            else if (event.GetKeyCode() == Key::D6) mSelectedStructureType = StructureType::BridgeA;
+        }
+
+        if (event.GetKeyCode() == Key::F1) mUIManager.ToggleResourcesPanel();
+        if (event.GetKeyCode() == Key::F2) mUIManager.ToggleBuildPanel();
+        if (event.GetKeyCode() == Key::F3) mUIManager.ToggleTileInfoPanel();
+        if (event.GetKeyCode() == Key::F4) mUIManager.ToggleDebugPanel();
 
         return false;
     }

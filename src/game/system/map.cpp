@@ -6,7 +6,7 @@
 
 #include "core/pch.h"
 #include "map.h"
-#include "game/system/model_manager.h"
+#include "../../renderer/model_manager.h"
 
 namespace RealmFortress
 {

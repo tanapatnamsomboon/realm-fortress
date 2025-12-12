@@ -61,6 +61,8 @@ set(REALM_FORTRESS_SOURCES
         src/renderer/mesh.h
         src/renderer/model.cpp
         src/renderer/model.h
+        src/renderer/model_manager.cpp
+        src/renderer/model_manager.h
         src/renderer/renderer.cpp
         src/renderer/renderer.h
         src/renderer/shader.cpp
@@ -83,6 +85,19 @@ set(REALM_FORTRESS_SOURCES
         src/game/game_layer.cpp
         src/game/game_layer.h
 
+        # Game - UI
+        src/game/ui/panel_base.h
+        src/game/ui/panel_build.cpp
+        src/game/ui/panel_build.h
+        src/game/ui/panel_debug.cpp
+        src/game/ui/panel_debug.h
+        src/game/ui/panel_resources.cpp
+        src/game/ui/panel_resources.h
+        src/game/ui/panel_tile_info.cpp
+        src/game/ui/panel_tile_info.h
+        src/game/ui/ui_manager.cpp
+        src/game/ui/ui_manager.h
+
         # Game - System
         src/game/system/camera_controller.cpp
         src/game/system/camera_controller.h
@@ -91,8 +106,6 @@ set(REALM_FORTRESS_SOURCES
         src/game/system/coordinate.h
         src/game/system/map.cpp
         src/game/system/map.h
-        src/game/system/model_manager.cpp
-        src/game/system/model_manager.h
         src/game/system/picker.cpp
         src/game/system/picker.h
         src/game/system/selection.cpp
@@ -106,6 +119,13 @@ set(REALM_FORTRESS_SOURCES
         src/game/building/building.h
         src/game/building/building_manager.cpp
         src/game/building/building_manager.h
+
+        # Game - Structure
+        src/game/structure/structure.cpp
+        src/game/structure/structure.h
+        src/game/structure/structure_manager.cpp
+        src/game/structure/structure_manager.h
+        src/game/structure/structure_types.h
 
         # Game - Unit
 
