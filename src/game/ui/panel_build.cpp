@@ -29,7 +29,12 @@ namespace RealmFortress
                 RenderBuildingButtons();
             }
 
-            if (ImGui::CollapsingHeader("Structures"))
+            if (ImGui::CollapsingHeader("Decorations", ImGuiTreeNodeFlags_DefaultOpen))
+            {
+                RenderDecorationButtons();
+            }
+
+            if (ImGui::CollapsingHeader("Structures", ImGuiTreeNodeFlags_DefaultOpen))
             {
                 RenderStructureButtons();
             }
@@ -70,6 +75,14 @@ namespace RealmFortress
 
         if (ImGui::Button("Tower", ImVec2(button_width, 0)) && mOnBuildingSelected)
             mOnBuildingSelected(BuildingType::TowerA);
+    }
+
+    void PanelBuild::RenderDecorationButtons()
+    {
+        constexpr f32 button_width = 200.0f;
+
+        if (ImGui::Button("Anchor", ImVec2(button_width, 0)) && mOnBuildingSelected)
+            mOnDecorationSelected(DecorationType::Anchor);
     }
 
     void PanelBuild::RenderStructureButtons()

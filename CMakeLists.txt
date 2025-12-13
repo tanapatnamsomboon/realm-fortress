@@ -61,8 +61,8 @@ set(REALM_FORTRESS_SOURCES
         src/renderer/mesh.h
         src/renderer/model.cpp
         src/renderer/model.h
-        src/renderer/model_manager.cpp
-        src/renderer/model_manager.h
+        src/renderer/model_cache.cpp
+        src/renderer/model_cache.h
         src/renderer/renderer.cpp
         src/renderer/renderer.h
         src/renderer/shader.cpp
@@ -120,12 +120,24 @@ set(REALM_FORTRESS_SOURCES
         src/game/building/building_manager.cpp
         src/game/building/building_manager.h
 
+        # Game - Decoration
+        src/game/decoration/decoration.cpp
+        src/game/decoration/decoration.h
+        src/game/decoration/decoration_manager.cpp
+        src/game/decoration/decoration_manager.h
+        src/game/decoration/decoration_type.h
+
         # Game - Structure
         src/game/structure/structure.cpp
         src/game/structure/structure.h
         src/game/structure/structure_manager.cpp
         src/game/structure/structure_manager.h
         src/game/structure/structure_types.h
+        src/game/unit/unit_types.h
+        src/game/unit/unit.cpp
+        src/game/unit/unit.h
+        src/game/unit/unit_manager.cpp
+        src/game/unit/unit_manager.h
 
         # Game - Unit
 

@@ -6,7 +6,7 @@
 
 #include "core/pch.h"
 #include "map.h"
-#include "../../renderer/model_manager.h"
+#include "../../renderer/model_cache.h"
 
 namespace RealmFortress
 {
@@ -66,7 +66,7 @@ namespace RealmFortress
         Tile tile(coord, type, elevation);
 
         std::string model_path = TileTypeToModelPath(type);
-        auto model = ModelManager::Load(model_path);
+        auto model = ModelCache::Load(model_path);
 
         if (!model)
         {

@@ -31,9 +31,16 @@ namespace RealmFortress
             RF_CORE_INFO("Building selected: {}", BuildingTypeToString(type));
         });
 
+        mUIManager.GetBuildPanel().SetOnDecorationSelected([this](DecorationType type)
+        {
+            mSelectedDecorationType = type;
+            mDecorationMode = true;
+            RF_CORE_INFO("Decoration selected: {}", DecorationTypeToString(type));
+        });
+
         mUIManager.GetBuildPanel().SetOnStructureSelected([this](StructureType type) {
-            // TODO: Handle structure selection
-            RF_CORE_INFO("Structure selected");
+            mSelectedStructureType = type;
+            mStructureMode = true;
         });
     }
 
@@ -97,8 +104,6 @@ namespace RealmFortress
         mMap.DrawWithHighlight(mShader, mHighlightShader, highlighted_tiles, highlight_color, mTime);
 
         mBuildingManager.Draw(mShader);
-        mStructureManager.Draw(mShader);
-
         if (mBuildMode && mSelection.HasHover())
         {
             auto coord = mSelection.GetHovered().value();
@@ -111,6 +116,15 @@ namespace RealmFortress
                 mBuildingManager.ClearPreview();
         }
 
+        mDecorationManager.Draw(mShader);
+        if (mDecorationMode && mSelection.HasHover())
+        {
+            auto coord = mSelection.GetHovered().value();
+            mDecorationManager.SetPreview(mSelectedDecorationType, coord);
+            mDecorationManager.DrawPreview(mHighlightShader, mMap, mTime);
+        }
+
+        mStructureManager.Draw(mShader);
         if (mStructureMode && mSelection.HasHover())
         {
             auto coord = mSelection.GetHovered().value();
@@ -123,6 +137,17 @@ namespace RealmFortress
                 mStructureManager.ClearPreview();
         }
 
+        mUnitManager.Update(ts);
+        mUnitManager.Draw(mShader);
+        if (mUnitManager.HasSelection())
+        {
+            auto* selected_unit = mUnitManager.GetSelectedUnit();
+            if (selected_unit)
+            {
+                highlighted_tiles.insert(selected_unit->GetCoordinate());
+            }
+        }
+
         Renderer::EndScene();
         Renderer::EndFrame();
 
@@ -130,7 +155,8 @@ namespace RealmFortress
         debug_panel.SetCamera(&mCameraController->GetCamera());
         debug_panel.SetTileCount(mMap.GetTileCount());
         debug_panel.SetBuildingCount(mBuildingManager.GetBuildingCount());
-        debug_panel.SetStructureCount(0);
+        debug_panel.SetDecorationCount(mDecorationManager.GetDecorationCount());
+        debug_panel.SetStructureCount(mStructureManager.GetStructureCount());
 
         if (mSelection.HasSelection())
         {
@@ -166,6 +192,26 @@ namespace RealmFortress
     {
         if (event.GetMouseButton() == Mouse::ButtonLeft)
         {
+            if (mBuildMode && mSelection.HasHover())
+            {
+                auto coord = mSelection.GetHovered().value();
+                if (mBuildingManager.PlaceBuilding(mSelectedBuildingType, mPlayerFaction, coord, mMap))
+                {
+                    RF_CORE_INFO("Building placed at ({}, {})", coord.Q, coord.R);
+                }
+                return true;
+            }
+
+            if (mDecorationMode && mSelection.HasHover())
+            {
+                auto coord = mSelection.GetHovered().value();
+                if (mDecorationManager.PlaceDecoration(mSelectedDecorationType, coord))
+                {
+                    RF_CORE_INFO("Decoration placed");
+                }
+                return true;
+            }
+
             if (mStructureMode && mSelection.HasHover())
             {
                 auto coord = mSelection.GetHovered().value();
@@ -176,13 +222,11 @@ namespace RealmFortress
                 return true;
             }
 
-            if (mBuildMode && mSelection.HasHover())
+            if (mUnitSpawnMode && mSelection.HasHover())
             {
                 auto coord = mSelection.GetHovered().value();
-                if (mBuildingManager.PlaceBuilding(mSelectedBuildingType, mPlayerFaction, coord, mMap))
-                {
-                    RF_CORE_INFO("Building placed at ({}, {})", coord.Q, coord.R);
-                }
+                mUnitManager.SpawnUnit(mSelectedUnitType, mPlayerFaction, coord);
+                RF_CORE_INFO("Unit spawned");
                 return true;
             }
 
@@ -194,6 +238,21 @@ namespace RealmFortress
                     mSelection.GetSelected().value().R);
             }
             return true;
+        }
+
+        if (event.GetMouseButton() == Mouse::ButtonRight)
+        {
+            if (mUnitManager.HasSelection() && mSelection.HasHover())
+            {
+                auto* unit = mUnitManager.GetSelectedUnit();
+                auto target = mSelection.GetHovered().value();
+                if (unit)
+                {
+                    unit->MoveTo(target);
+                    RF_CORE_INFO("Unit moving to ({}, {})", target.Q, target.R);
+                }
+                return true;
+            }
         }
 
         return false;
@@ -235,6 +294,20 @@ namespace RealmFortress
             return true;
         }
 
+        if (event.GetKeyCode() == Key::D)
+        {
+            mDecorationMode = !mDecorationMode;
+            if (!mDecorationMode)
+                mDecorationManager.ClearPreview();
+            if (mDecorationMode)
+            {
+                mDecorationMode = false;
+                mDecorationManager.ClearPreview();
+            }
+            RF_CORE_INFO("Decoration mode: {}", mDecorationMode ? "ON" : "OFF");
+            return true;
+        }
+
         if (event.GetKeyCode() == Key::V)
         {
             mStructureMode = !mStructureMode;
@@ -255,11 +328,20 @@ namespace RealmFortress
             else if (event.GetKeyCode() == Key::D2) mSelectedBuildingType = BuildingType::HomeA;
             else if (event.GetKeyCode() == Key::D3) mSelectedBuildingType = BuildingType::Barracks;
         }
+        else if (mDecorationMode)
+        {
+            if (event.GetKeyCode() == Key::D1) mSelectedDecorationType = DecorationType::TreeSmall;
+            else if (event.GetKeyCode() == Key::D2) mSelectedDecorationType = DecorationType::TreeMedium;
+            else if (event.GetKeyCode() == Key::D3) mSelectedDecorationType = DecorationType::TreeLarge;
+            else if (event.GetKeyCode() == Key::D4) mSelectedDecorationType = DecorationType::RockA;
+            else if (event.GetKeyCode() == Key::D5) mSelectedDecorationType = DecorationType::Barrel;
+            else if (event.GetKeyCode() == Key::D6) mSelectedDecorationType = DecorationType::Crate;
+        }
         else if (mStructureMode)
         {
-            if (event.GetKeyCode() == Key::D4) mSelectedStructureType = StructureType::WallStraight;
-            else if (event.GetKeyCode() == Key::D5) mSelectedStructureType = StructureType::FenceWoodStraight;
-            else if (event.GetKeyCode() == Key::D6) mSelectedStructureType = StructureType::BridgeA;
+            if (event.GetKeyCode() == Key::D1) mSelectedStructureType = StructureType::WallStraight;
+            else if (event.GetKeyCode() == Key::D2) mSelectedStructureType = StructureType::FenceWoodStraight;
+            else if (event.GetKeyCode() == Key::D3) mSelectedStructureType = StructureType::BridgeA;
         }
 
         if (event.GetKeyCode() == Key::F1) mUIManager.ToggleResourcesPanel();

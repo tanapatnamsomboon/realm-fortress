@@ -16,8 +16,10 @@
 #include "game/system/picker.h"
 #include "game/system/selection.h"
 #include "game/building/building_manager.h"
+#include "game/decoration/decoration_manager.h"
 #include "game/structure/structure_manager.h"
 #include "game/ui/ui_manager.h"
+#include "game/unit/unit_manager.h"
 
 namespace RealmFortress
 {
@@ -56,12 +58,20 @@ namespace RealmFortress
 
         BuildingManager mBuildingManager;
         bool mBuildMode{ false };
-        BuildingType mSelectedBuildingType{ BuildingType::TownHall };
+        BuildingType mSelectedBuildingType{ BuildingType::None };
         Faction mPlayerFaction{ Faction::Blue };
+
+        DecorationManager mDecorationManager;
+        bool mDecorationMode{ false };
+        DecorationType mSelectedDecorationType{ DecorationType::None };
 
         StructureManager mStructureManager;
         bool mStructureMode{ false };
-        StructureType mSelectedStructureType{ StructureType::WallStraight };
+        StructureType mSelectedStructureType{ StructureType::None };
+
+        UnitManager mUnitManager;
+        bool mUnitSpawnMode{ false };
+        UnitType mSelectedUnitType{ UnitType::None };
 
         UIManager mUIManager;
     };

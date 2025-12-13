@@ -5,13 +5,13 @@
  */
 
 #include "core/pch.h"
-#include "model_manager.h"
+#include "model_cache.h"
 
 namespace RealmFortress
 {
-    std::unordered_map<std::string, Ref<Model>> ModelManager::sModels;
+    std::unordered_map<std::string, Ref<Model>> ModelCache::sModels;
 
-    Ref<Model> ModelManager::Load(const std::string& path)
+    Ref<Model> ModelCache::Load(const std::string& path)
     {
         if (sModels.contains(path))
         {
@@ -33,24 +33,24 @@ namespace RealmFortress
         }
     }
 
-    Ref<Model> ModelManager::Get(const std::string& path)
+    Ref<Model> ModelCache::Get(const std::string& path)
     {
         auto it = sModels.find(path);
         return it != sModels.end() ? it->second : nullptr;
     }
 
-    bool ModelManager::Exists(const std::string& path)
+    bool ModelCache::Exists(const std::string& path)
     {
         return sModels.contains(path);
     }
 
-    void ModelManager::Clear()
+    void ModelCache::Clear()
     {
         RF_CORE_INFO("Clearing model cache ({} models)", sModels.size());
         sModels.clear();
     }
 
-    usize ModelManager::GetCachedCount()
+    usize ModelCache::GetCachedCount()
     {
         return sModels.size();
     }

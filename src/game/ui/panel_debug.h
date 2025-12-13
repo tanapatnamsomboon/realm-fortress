@@ -21,12 +21,14 @@ namespace RealmFortress
         void SetCamera(const Camera* camera) { mCamera = camera; }
         void SetTileCount(usize count) { mTileCount = count; }
         void SetBuildingCount(usize count) { mBuildingCount = count; }
+        void SetDecorationCount(usize count) { mDecorationCount = count; }
         void SetStructureCount(usize count) { mStructureCount = count; }
 
     private:
         const Camera* mCamera{ nullptr };
         usize mTileCount{ 0 };
         usize mBuildingCount{ 0 };
+        usize mDecorationCount{ 0 };
         usize mStructureCount{ 0 };
     };
 } // namespace RealmFortress

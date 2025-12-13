@@ -13,7 +13,7 @@
 
 namespace RealmFortress
 {
-    class ModelManager
+    class ModelCache
     {
     public:
         static Ref<Model> Load(const std::string& path);

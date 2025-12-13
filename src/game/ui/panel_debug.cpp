@@ -42,6 +42,7 @@ namespace RealmFortress
             ImGui::Text("  Tiles: %zu", mTileCount);
             ImGui::Text("  Buildings: %zu", mBuildingCount);
             ImGui::Text("  Structures: %zu", mStructureCount);
+            ImGui::Text("  Decoration: %zu", mDecorationCount);
 
             ImGui::Separator();
 

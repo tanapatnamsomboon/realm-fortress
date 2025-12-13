@@ -6,7 +6,7 @@
 
 #include "core/pch.h"
 #include "structure_manager.h"
-#include "../../renderer/model_manager.h"
+#include "../../renderer/model_cache.h"
 
 namespace RealmFortress
 {
@@ -117,7 +117,7 @@ namespace RealmFortress
             return it->second;
 
         std::string path = StructureTypeToModelPath(type);
-        auto model = ModelManager::Load(path);
+        auto model = ModelCache::Load(path);
         if (!model)
             RF_CORE_WARN("Structure model load failed: {}", path);
 

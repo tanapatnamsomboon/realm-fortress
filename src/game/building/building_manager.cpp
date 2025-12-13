@@ -7,7 +7,7 @@
 #include "core/pch.h"
 #include "building_manager.h"
 #include "core/logger.h"
-#include "../../renderer/model_manager.h"
+#include "../../renderer/model_cache.h"
 
 namespace RealmFortress
 {
@@ -132,7 +132,7 @@ namespace RealmFortress
             return it->second;
 
         std::string model_path = BuildingTypeToModelPath(type, faction);
-        auto model = ModelManager::Load(model_path);
+        auto model = ModelCache::Load(model_path);
 
         if (!model)
             RF_CORE_WARN("Failed to load building model: {}", model_path);
