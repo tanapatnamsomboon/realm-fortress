@@ -15,14 +15,17 @@
 #include "game/system/map.h"
 #include "game/system/picker.h"
 #include "game/system/selection.h"
+#include "game/resource/warehouse.h"
 #include "game/building/building_manager.h"
-#include "game/decoration/decoration_manager.h"
-#include "game/structure/structure_manager.h"
-#include "game/ui/ui_manager.h"
-#include "game/unit/unit_manager.h"
 
 namespace RealmFortress
 {
+    enum class GameMode
+    {
+        Normal,
+        Building
+    };
+
     class GameLayer final : public Layer
     {
     public:
@@ -43,6 +46,16 @@ namespace RealmFortress
 
         void UpdateSelection();
 
+        void EnterBuildMode(BuildingType type);
+        void ExitBuildMode();
+        void PlaceBuildingAtSelection();
+        std::unordered_set<Coordinate> GetBuildableTiles() const;
+
+        void DrawResourcePanel();
+        void DrawBuildingMenu();
+        void DrawBuildingInfo();
+        void DrawSelectionInfo();
+
     private:
         ShaderLibrary mShaderLibrary;
         Ref<Shader> mShader;
@@ -56,23 +69,8 @@ namespace RealmFortress
         Selection mSelection;
         f32 mTime{ 0.0f };
 
-        BuildingManager mBuildingManager;
-        bool mBuildMode{ false };
-        BuildingType mSelectedBuildingType{ BuildingType::None };
-        Faction mPlayerFaction{ Faction::Blue };
-
-        DecorationManager mDecorationManager;
-        bool mDecorationMode{ false };
-        DecorationType mSelectedDecorationType{ DecorationType::None };
-
-        StructureManager mStructureManager;
-        bool mStructureMode{ false };
-        StructureType mSelectedStructureType{ StructureType::None };
-
-        UnitManager mUnitManager;
-        bool mUnitSpawnMode{ false };
-        UnitType mSelectedUnitType{ UnitType::None };
-
-        UIManager mUIManager;
+        GameMode mGameMode{ GameMode::Normal };
+        BuildingType mSelectedBuildingType{ BuildingType::Mine };
+        Building* mInspectedBuilding{ nullptr };
     };
 }

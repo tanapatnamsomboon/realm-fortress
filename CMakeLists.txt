@@ -86,17 +86,6 @@ set(REALM_FORTRESS_SOURCES
         src/game/game_layer.h
 
         # Game - UI
-        src/game/ui/panel_base.h
-        src/game/ui/panel_build.cpp
-        src/game/ui/panel_build.h
-        src/game/ui/panel_debug.cpp
-        src/game/ui/panel_debug.h
-        src/game/ui/panel_resources.cpp
-        src/game/ui/panel_resources.h
-        src/game/ui/panel_tile_info.cpp
-        src/game/ui/panel_tile_info.h
-        src/game/ui/ui_manager.cpp
-        src/game/ui/ui_manager.h
 
         # Game - System
         src/game/system/camera_controller.cpp
@@ -119,31 +108,15 @@ set(REALM_FORTRESS_SOURCES
         src/game/building/building.h
         src/game/building/building_manager.cpp
         src/game/building/building_manager.h
-
-        # Game - Decoration
-        src/game/decoration/decoration.cpp
-        src/game/decoration/decoration.h
-        src/game/decoration/decoration_manager.cpp
-        src/game/decoration/decoration_manager.h
-        src/game/decoration/decoration_type.h
-
-        # Game - Structure
-        src/game/structure/structure.cpp
-        src/game/structure/structure.h
-        src/game/structure/structure_manager.cpp
-        src/game/structure/structure_manager.h
-        src/game/structure/structure_types.h
-        src/game/unit/unit_types.h
-        src/game/unit/unit.cpp
-        src/game/unit/unit.h
-        src/game/unit/unit_manager.cpp
-        src/game/unit/unit_manager.h
-
-        # Game - Unit
+        src/game/building/mine.cpp
+        src/game/building/mine.h
 
         # Game - Resource
+        src/game/resource/resource.cpp
+        src/game/resource/resource.h
+        src/game/resource/warehouse.cpp
+        src/game/resource/warehouse.h
 
-        # Game - Gameplay
 )
 
 add_executable(realm-fortress ${REALM_FORTRESS_SOURCES})

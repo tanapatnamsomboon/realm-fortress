@@ -6,7 +6,7 @@
 
 #include "core/pch.h"
 #include "map.h"
-#include "../../renderer/model_cache.h"
+#include "renderer/model_cache.h"
 
 namespace RealmFortress
 {
@@ -63,15 +63,10 @@ namespace RealmFortress
 
     void Map::AddTile(const Coordinate& coord, TileType type, i32 elevation)
     {
-        Tile tile(coord, type, elevation);
+        Tile tile(coord, type, "", elevation);
 
         std::string model_path = TileTypeToModelPath(type);
         auto model = ModelCache::Load(model_path);
-
-        if (!model)
-        {
-            RF_CORE_WARN("Failed to load model for tile at ({}, {})", coord.Q, coord.R);
-        }
 
         tile.SetModel(model);
         mTiles[coord] = std::move(tile);

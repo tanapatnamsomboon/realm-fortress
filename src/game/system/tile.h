@@ -11,9 +11,6 @@
 #include "renderer/model.h"
 #include <string>
 
-#include "glm/gtx/associated_min_max.hpp"
-#include "glm/gtx/associated_min_max.hpp"
-
 namespace RealmFortress
 {
     enum class TileType : u8
@@ -34,14 +31,18 @@ namespace RealmFortress
     {
     public:
         Tile() = default;
-        Tile(const Coordinate& coord, TileType type, i32 elevation = 0);
+        Tile(const Coordinate& coord, TileType type, const std::string& model_path = "", i32 elevation = 0);
 
         const Coordinate& GetCoordinate() const { return mCoordinate; }
         TileType GetType() const { return mType; }
         i32 GetElevation() const { return mElevation; }
+        const std::string& GetModelPath() const { return mModelPath; }
+        f32 GetRotation() const { return mRotation; }
 
         void SetType(TileType type);
         void SetElevation(i32 elevation);
+        void SetModelPath(const std::string& model_path) { mModelPath = model_path; }
+        void SetRotation(f32 degrees) { mRotation = degrees; }
 
         glm::vec3 GetWorldPosition() const;
         glm::mat4 GetTransform() const;
@@ -55,6 +56,8 @@ namespace RealmFortress
     private:
         Coordinate mCoordinate{};
         TileType mType{ TileType::None };
+        std::string mModelPath;
+        f32 mRotation{ 0.0f };
         i32 mElevation{ 0 };
         Ref<Model> mModel{ nullptr };
     };

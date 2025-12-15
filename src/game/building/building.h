@@ -1,91 +1,116 @@
 /**
  * @file building.h
  * @brief
- * @date 12/12/2025
+ * @date 12/15/2025
  */
 
 #pragma once
 
 #include "core/base.h"
+#include "core/timestep.h"
+#include "game/resource/resource.h"
 #include "game/system/coordinate.h"
+#include "game/system/map.h"
 #include "renderer/model.h"
-#include <string>
 
 namespace RealmFortress
 {
-    enum class BuildingType : u8
+    enum class BuildingType
     {
-        None = 0,
-
-        TownHall,
-        Castle,
-        HomeA,
-        HomeB,
-        Barracks,
-        ArcheryRange,
-        Blacksmith,
-        Church,
-        Docks,
         LumberMill,
-        Market,
         Mine,
-        Shipyard,
-        Shrine,
-        Stables,
-        Tavern,
-        Tent,
-        Watchtower,
-        Watermill,
-        Well,
-        Windmill,
-        Workshop,
-        TowerA,
-        TowerB,
-        TowerBase,
-        TowerCannon,
-        TowerCatapult,
+        Farm,
 
-        Count
+        Count,
     };
 
-    enum class Faction : u8
+    enum class BuildingCategory : u8
     {
-        Neutral = 0,
-        Blue,
-        Red,
-        Green,
-        Yellow,
+        Production,
+        Military,
+        Utility,
+        Residential,
 
         Count
     };
+
+    struct BuildingDefinition
+    {
+        const char*      Name;
+        const char*      Description;
+        BuildingCategory Category;
+        ResourceCost     ConstructionCost;
+        f32              ConstructionTime;
+    };
+
+    inline const BuildingDefinition& GetBuildingDefinition(BuildingType type)
+    {
+        static const BuildingDefinition definitions[] = {
+            {
+                "Lumber Mill",
+                "Produces lumber from nearby trees",
+                BuildingCategory::Production,
+                { { ResourceType::Lumber, 10 }, { ResourceType::Stone, 5 } },
+                5.0f
+            },
+            {
+                "Mine",
+                "Extracts stone from the ground",
+                BuildingCategory::Production,
+                { { ResourceType::Lumber, 15 }, { ResourceType::Stone, 3 } },
+                8.0f
+            },
+            {
+                "Farm",
+                "Grows food for your settlement",
+                BuildingCategory::Production,
+                { { ResourceType::Lumber, 8 }, { ResourceType::Stone, 2 } },
+                4.0f
+            },
+        };
+        return definitions[static_cast<size_t>(type)];
+    }
+
+    inline const char* BuildingCategoryToString(BuildingCategory category)
+    {
+        switch (category)
+        {
+        case BuildingCategory::Production:  return "Production";
+        case BuildingCategory::Military:    return "Military";
+        case BuildingCategory::Utility:     return "Utility";
+        case BuildingCategory::Residential: return "Residential";
+        default:                            return "Unknown";
+        }
+    }
 
     class Building
     {
     public:
-        Building() = default;
-        Building(BuildingType type, Faction faction, const Coordinate& coord);
+        Building(BuildingType type, const Coordinate& coord);
+        virtual ~Building() = default;
 
+        virtual void OnUpdate(Timestep ts) = 0;
+        virtual void OnPlaced() = 0;
+        virtual void OnDestroyed() {};
+
+        virtual bool CanPlace(const Coordinate& coord, const Map& map) const = 0;
+
+        const Coordinate& GetCoordinate() const { return mCoord; }
         BuildingType GetType() const { return mType; }
-        Faction GetFaction() const { return mFaction; }
-        const Coordinate& GetCoordinate() const { return mCoordinate; }
+        const BuildingDefinition& GetDefinition() const { return GetBuildingDefinition(mType); }
+        BuildingCategory GetCategory() const { return GetDefinition().Category; }
 
         void SetModel(const Ref<Model>& model) { mModel = model; }
         Ref<Model> GetModel() const { return mModel; }
-
         glm::mat4 GetTransform() const;
 
-        bool IsConstructed() const { return mConstructed; }
-        void SetConstructed(bool constructed) { mConstructed = constructed; }
+        bool IsActive() const { return mActive; }
+        void SetActive(bool active) { mActive = active; }
 
-    private:
-        BuildingType mType{ BuildingType::None };
-        Faction mFaction{ Faction::Neutral };
-        Coordinate mCoordinate{};
-        Ref<Model> mModel{ nullptr };
-        bool mConstructed{ true };
+    protected:
+        BuildingType mType;
+        Coordinate mCoord;
+        Ref<Model> mModel;
+        bool mActive{ true };
     };
-
-    const char* BuildingTypeToString(BuildingType type);
-    const char* FactionToString(Faction faction);
-    std::string BuildingTypeToModelPath(BuildingType type, Faction faction);
-}
+} // namespace RealmFortress

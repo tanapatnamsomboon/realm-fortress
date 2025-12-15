@@ -10,8 +10,8 @@
 
 namespace RealmFortress
 {
-    Tile::Tile(const Coordinate& coord, TileType type, i32 elevation)
-        : mCoordinate(coord), mType(type), mElevation(elevation)
+    Tile::Tile(const Coordinate& coord, TileType type, const std::string& model_path, i32 elevation)
+        : mCoordinate(coord), mType(type), mModelPath(model_path), mElevation(elevation)
     {
     }
 
@@ -34,6 +34,10 @@ namespace RealmFortress
     {
         glm::mat4 transform = glm::mat4(1.0f);
         transform = glm::translate(transform, GetWorldPosition());
+
+        if (mRotation != 0.0f)
+            transform = glm::rotate(transform, glm::radians(mRotation), glm::vec3(0.0f, 1.0f, 0.0f));
+
         return transform;
     }
 

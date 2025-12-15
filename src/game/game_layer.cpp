@@ -10,6 +10,7 @@
 #include "core/application.h"
 #include "core/input.h"
 #include "renderer/renderer.h"
+#include "game/building/mine.h"
 #include <imgui.h>
 
 namespace RealmFortress
@@ -23,25 +24,6 @@ namespace RealmFortress
         auto& window = Application::Get().GetWindow();
         f32 aspectRatio = static_cast<f32>(window.GetWidth()) / static_cast<f32>(window.GetHeight());
         mCameraController = CreateRef<CameraController>(aspectRatio);
-
-        mUIManager.GetBuildPanel().SetOnBuildingSelected([this](BuildingType type)
-        {
-            mSelectedBuildingType = type;
-            mBuildMode = true;
-            RF_CORE_INFO("Building selected: {}", BuildingTypeToString(type));
-        });
-
-        mUIManager.GetBuildPanel().SetOnDecorationSelected([this](DecorationType type)
-        {
-            mSelectedDecorationType = type;
-            mDecorationMode = true;
-            RF_CORE_INFO("Decoration selected: {}", DecorationTypeToString(type));
-        });
-
-        mUIManager.GetBuildPanel().SetOnStructureSelected([this](StructureType type) {
-            mSelectedStructureType = type;
-            mStructureMode = true;
-        });
     }
 
     void GameLayer::OnAttach()
@@ -55,19 +37,35 @@ namespace RealmFortress
 
         mMap.GenerateHexagon(5, TileType::Grass);
 
+        bool success = Warehouse::Get().Add({
+            { ResourceType::Lumber, 100 },
+            { ResourceType::Stone, 80 },
+            { ResourceType::Wheat, 50 }
+        });
+
+        if (!success)
+        {
+            RF_CORE_WARN("Initial resources exceed warehouse capacity!");
+        }
+
         RF_CORE_INFO("Map generated with {} tiles", mMap.GetTileCount());
+        RF_CORE_INFO("Warehouse capacity: {} / {}",
+                     Warehouse::Get().GetUsedSpace(),
+                     Warehouse::Get().GetCapacity());
     }
 
     void GameLayer::OnDetach()
     {
         RF_CORE_INFO("GameLayer detached");
+        BuildingManager::Get().Clear();
     }
 
     void GameLayer::OnUpdate(Timestep ts)
     {
-        Layer::OnUpdate(ts);
-
         mTime += ts;
+
+        Warehouse::Get().OnUpdate(ts);
+        BuildingManager::Get().OnUpdate(ts);
 
         Renderer::BeginFrame();
         Renderer::Clear();
@@ -85,97 +83,65 @@ namespace RealmFortress
         mHighlightShader->SetMat4("uViewProjection", Renderer::GetViewProjectionMatrix());
 
         std::unordered_set<Coordinate> highlighted_tiles;
-        if (mSelection.HasHover())
-        {
-            highlighted_tiles.insert(mSelection.GetHovered().value());
-        }
-        if (mSelection.HasSelection())
-        {
-            highlighted_tiles.insert(mSelection.GetSelected().value());
-        }
-
         glm::vec3 highlight_color(1.0f, 1.0f, 0.0f);
 
-        if (mSelection.HasSelection())
+        if (mGameMode == GameMode::Building)
         {
-            highlight_color = glm::vec3(0.0f, 1.0f, 0.5f);
+            if (mSelection.HasHover())
+            {
+                auto hovered = mSelection.GetHovered().value();
+                bool can_place = BuildingManager::Get().CanPlaceBuilding(
+                    mSelectedBuildingType, hovered, mMap);
+
+                highlighted_tiles.insert(hovered);
+                highlight_color = can_place ? glm::vec3(0.0f, 1.0f, 0.0f) : glm::vec3(1.0f, 0.0f, 0.0f);
+            }
+        }
+        else
+        {
+            if (mSelection.HasHover())
+            {
+                highlighted_tiles.insert(mSelection.GetHovered().value());
+                highlight_color = glm::vec3(1.0f, 1.0f, 0.0f);
+            }
+            if (mSelection.HasSelection())
+            {
+                highlighted_tiles.insert(mSelection.GetSelected().value());
+                highlight_color = glm::vec3(0.0f, 1.0f, 0.5f);
+            }
         }
 
         mMap.DrawWithHighlight(mShader, mHighlightShader, highlighted_tiles, highlight_color, mTime);
 
-        mBuildingManager.Draw(mShader);
-        if (mBuildMode && mSelection.HasHover())
-        {
-            auto coord = mSelection.GetHovered().value();
-            mBuildingManager.SetPreview(mSelectedBuildingType, mPlayerFaction, coord);
-            mBuildingManager.DrawPreview(mHighlightShader, mMap, mTime);
-        }
-        else
-        {
-            if (!mBuildMode)
-                mBuildingManager.ClearPreview();
-        }
-
-        mDecorationManager.Draw(mShader);
-        if (mDecorationMode && mSelection.HasHover())
-        {
-            auto coord = mSelection.GetHovered().value();
-            mDecorationManager.SetPreview(mSelectedDecorationType, coord);
-            mDecorationManager.DrawPreview(mHighlightShader, mMap, mTime);
-        }
-
-        mStructureManager.Draw(mShader);
-        if (mStructureMode && mSelection.HasHover())
-        {
-            auto coord = mSelection.GetHovered().value();
-            mStructureManager.SetPreview(mSelectedStructureType, coord, 0.0f);
-            mStructureManager.DrawPreview(mHighlightShader, mMap, mTime);
-        }
-        else
-        {
-            if (!mStructureMode)
-                mStructureManager.ClearPreview();
-        }
-
-        mUnitManager.Update(ts);
-        mUnitManager.Draw(mShader);
-        if (mUnitManager.HasSelection())
-        {
-            auto* selected_unit = mUnitManager.GetSelectedUnit();
-            if (selected_unit)
-            {
-                highlighted_tiles.insert(selected_unit->GetCoordinate());
-            }
-        }
-
         Renderer::EndScene();
         Renderer::EndFrame();
-
-        auto& debug_panel = mUIManager.GetDebugPanel();
-        debug_panel.SetCamera(&mCameraController->GetCamera());
-        debug_panel.SetTileCount(mMap.GetTileCount());
-        debug_panel.SetBuildingCount(mBuildingManager.GetBuildingCount());
-        debug_panel.SetDecorationCount(mDecorationManager.GetDecorationCount());
-        debug_panel.SetStructureCount(mStructureManager.GetStructureCount());
-
-        if (mSelection.HasSelection())
-        {
-            auto coord = mSelection.GetSelected().value();
-            auto* tile = mMap.GetTile(coord);
-            auto* building = mBuildingManager.GetBuilding(coord);
-
-            mUIManager.GetTileInfoPanel().SetSelectedTile(tile);
-            mUIManager.GetTileInfoPanel().SetSelectedBuilding(building);
-        }
-        else
-        {
-            mUIManager.GetTileInfoPanel().Clear();
-        }
     }
 
     void GameLayer::OnImGuiRender()
     {
-        mUIManager.OnRender();
+        DrawResourcePanel();
+        DrawBuildingMenu();
+
+        if (mInspectedBuilding)
+        {
+            DrawBuildingInfo();
+        }
+        else if (mSelection.HasSelection())
+        {
+            DrawSelectionInfo();
+        }
+
+        ImGui::Begin("Debug");
+        ImGui::Text("FPS: %.1f", ImGui::GetIO().Framerate);
+        ImGui::Text("Mode: %s", mGameMode == GameMode::Building ? "Building" : "Normal");
+        ImGui::Text("Buildings: %zu", BuildingManager::Get().GetAllBuildings().size());
+
+        if (ImGui::Button("Clear All Buildings"))
+        {
+            BuildingManager::Get().Clear();
+        }
+
+        ImGui::End();
     }
 
     void GameLayer::OnEvent(Event& event)
@@ -192,67 +158,47 @@ namespace RealmFortress
     {
         if (event.GetMouseButton() == Mouse::ButtonLeft)
         {
-            if (mBuildMode && mSelection.HasHover())
+            if (mGameMode == GameMode::Building)
             {
-                auto coord = mSelection.GetHovered().value();
-                if (mBuildingManager.PlaceBuilding(mSelectedBuildingType, mPlayerFaction, coord, mMap))
+                PlaceBuildingAtSelection();
+            }
+            else
+            {
+                if (mSelection.HasHover())
                 {
-                    RF_CORE_INFO("Building placed at ({}, {})", coord.Q, coord.R);
+                    auto coord = mSelection.GetHovered().value();
+
+                    Building* building = BuildingManager::Get().GetBuildingAt(coord);
+                    if (building)
+                    {
+                        mInspectedBuilding = building;
+                        RF_CORE_INFO("Inspecting building: {} at ({}, {})",
+                                    building->GetDefinition().Name,
+                                    coord.Q, coord.R);
+                    }
+                    else
+                    {
+                        mSelection.Select(coord);
+                        mInspectedBuilding = nullptr;
+                        RF_CORE_INFO("Selected tile: ({}, {})", coord.Q, coord.R);
+                    }
                 }
-                return true;
-            }
-
-            if (mDecorationMode && mSelection.HasHover())
-            {
-                auto coord = mSelection.GetHovered().value();
-                if (mDecorationManager.PlaceDecoration(mSelectedDecorationType, coord))
-                {
-                    RF_CORE_INFO("Decoration placed");
-                }
-                return true;
-            }
-
-            if (mStructureMode && mSelection.HasHover())
-            {
-                auto coord = mSelection.GetHovered().value();
-                if (mStructureManager.PlaceStructure(mSelectedStructureType, coord, 0.0f, mMap))
-                {
-                    RF_CORE_INFO("Structure placed at ({}, {})", coord.Q, coord.R);
-                }
-                return true;
-            }
-
-            if (mUnitSpawnMode && mSelection.HasHover())
-            {
-                auto coord = mSelection.GetHovered().value();
-                mUnitManager.SpawnUnit(mSelectedUnitType, mPlayerFaction, coord);
-                RF_CORE_INFO("Unit spawned");
-                return true;
-            }
-
-            if (mSelection.HasHover())
-            {
-                mSelection.Select(mSelection.GetHovered().value());
-                RF_CORE_INFO("Selected: ({}, {})",
-                    mSelection.GetSelected().value().Q,
-                    mSelection.GetSelected().value().R);
             }
             return true;
         }
 
         if (event.GetMouseButton() == Mouse::ButtonRight)
         {
-            if (mUnitManager.HasSelection() && mSelection.HasHover())
+            if (mGameMode == GameMode::Building)
             {
-                auto* unit = mUnitManager.GetSelectedUnit();
-                auto target = mSelection.GetHovered().value();
-                if (unit)
-                {
-                    unit->MoveTo(target);
-                    RF_CORE_INFO("Unit moving to ({}, {})", target.Q, target.R);
-                }
-                return true;
+                ExitBuildMode();
             }
+            else
+            {
+                mSelection.ClearSelection();
+                mInspectedBuilding = nullptr;
+            }
+            return true;
         }
 
         return false;
@@ -267,87 +213,33 @@ namespace RealmFortress
     {
         if (event.GetKeyCode() == Key::Escape)
         {
-            if (mBuildMode)
+            if (mGameMode == GameMode::Building)
             {
-                mBuildMode = false;
-                mBuildingManager.ClearPreview();
-                RF_CORE_INFO("Exited build mode");
+                ExitBuildMode();
             }
             else
             {
                 mSelection.ClearSelection();
+                mInspectedBuilding = nullptr;
             }
             return true;
         }
 
-        if (event.GetKeyCode() == Key::B)
+        if (event.GetKeyCode() == Key::D1)
         {
-            mBuildMode = !mBuildMode;
-            if (!mBuildMode)
-                mBuildingManager.ClearPreview();
-            if (mBuildMode && mStructureMode)
-            {
-                mStructureMode = false;
-                mStructureManager.ClearPreview();
-            }
-            RF_CORE_INFO("Build mode: {}", mBuildMode ? "ON" : "OFF");
+            EnterBuildMode(BuildingType::LumberMill);
             return true;
         }
-
-        if (event.GetKeyCode() == Key::D)
+        if (event.GetKeyCode() == Key::D2)
         {
-            mDecorationMode = !mDecorationMode;
-            if (!mDecorationMode)
-                mDecorationManager.ClearPreview();
-            if (mDecorationMode)
-            {
-                mDecorationMode = false;
-                mDecorationManager.ClearPreview();
-            }
-            RF_CORE_INFO("Decoration mode: {}", mDecorationMode ? "ON" : "OFF");
+            EnterBuildMode(BuildingType::Mine);
             return true;
         }
-
-        if (event.GetKeyCode() == Key::V)
+        if (event.GetKeyCode() == Key::D3)
         {
-            mStructureMode = !mStructureMode;
-            if (!mStructureMode)
-                mStructureManager.ClearPreview();
-            if (mStructureMode && mBuildMode)
-            {
-                mBuildMode = false;
-                mBuildingManager.ClearPreview();
-            }
-            RF_CORE_INFO("Structure mode: {}", mStructureMode ? "ON" : "OFF");
+            EnterBuildMode(BuildingType::Farm);
             return true;
         }
-
-        if (mBuildMode)
-        {
-            if (event.GetKeyCode() == Key::D1) mSelectedBuildingType = BuildingType::TownHall;
-            else if (event.GetKeyCode() == Key::D2) mSelectedBuildingType = BuildingType::HomeA;
-            else if (event.GetKeyCode() == Key::D3) mSelectedBuildingType = BuildingType::Barracks;
-        }
-        else if (mDecorationMode)
-        {
-            if (event.GetKeyCode() == Key::D1) mSelectedDecorationType = DecorationType::TreeSmall;
-            else if (event.GetKeyCode() == Key::D2) mSelectedDecorationType = DecorationType::TreeMedium;
-            else if (event.GetKeyCode() == Key::D3) mSelectedDecorationType = DecorationType::TreeLarge;
-            else if (event.GetKeyCode() == Key::D4) mSelectedDecorationType = DecorationType::RockA;
-            else if (event.GetKeyCode() == Key::D5) mSelectedDecorationType = DecorationType::Barrel;
-            else if (event.GetKeyCode() == Key::D6) mSelectedDecorationType = DecorationType::Crate;
-        }
-        else if (mStructureMode)
-        {
-            if (event.GetKeyCode() == Key::D1) mSelectedStructureType = StructureType::WallStraight;
-            else if (event.GetKeyCode() == Key::D2) mSelectedStructureType = StructureType::FenceWoodStraight;
-            else if (event.GetKeyCode() == Key::D3) mSelectedStructureType = StructureType::BridgeA;
-        }
-
-        if (event.GetKeyCode() == Key::F1) mUIManager.ToggleResourcesPanel();
-        if (event.GetKeyCode() == Key::F2) mUIManager.ToggleBuildPanel();
-        if (event.GetKeyCode() == Key::F3) mUIManager.ToggleTileInfoPanel();
-        if (event.GetKeyCode() == Key::F4) mUIManager.ToggleDebugPanel();
 
         return false;
     }
@@ -370,5 +262,277 @@ namespace RealmFortress
         {
             mSelection.ClearHover();
         }
+    }
+
+    void GameLayer::EnterBuildMode(BuildingType type)
+    {
+        mGameMode = GameMode::Building;
+        mSelectedBuildingType = type;
+        mInspectedBuilding = nullptr;
+
+        const auto& definition = GetBuildingDefinition(type);
+        RF_CORE_INFO("Entering build mode: {}", definition.Name);
+    }
+
+    void GameLayer::ExitBuildMode()
+    {
+        mGameMode = GameMode::Normal;
+        RF_CORE_INFO("Exiting build mode");
+    }
+
+    void GameLayer::PlaceBuildingAtSelection()
+    {
+        if (!mSelection.HasHover())
+            return;
+
+        auto coord = mSelection.GetHovered().value();
+
+        if (BuildingManager::Get().PlaceBuilding(mSelectedBuildingType, coord, mMap))
+        {
+            const auto& definition = GetBuildingDefinition(mSelectedBuildingType);
+            RF_CORE_INFO("Placed {} at ({}, {})", definition.Name, coord.Q, coord.R);
+
+            ExitBuildMode();
+        }
+        else
+        {
+            RF_CORE_WARN("Cannot place building at ({}, {})", coord.Q, coord.R);
+        }
+    }
+
+    std::unordered_set<Coordinate> GameLayer::GetBuildableTiles() const
+    {
+        std::unordered_set<Coordinate> buildable;
+
+        for (const auto& coord : mMap.GetTiles() | std::views::keys)
+        {
+            if (BuildingManager::Get().CanPlaceBuilding(mSelectedBuildingType, coord, mMap))
+            {
+                buildable.insert(coord);
+            }
+        }
+
+        return buildable;
+    }
+
+    void GameLayer::DrawResourcePanel()
+    {
+        ImGui::Begin("Resources");
+
+        auto& warehouse = Warehouse::Get();
+
+        ImGui::Text("Lumber: %d", warehouse.GetAmount(ResourceType::Lumber));
+        ImGui::Text("Stone: %d", warehouse.GetAmount(ResourceType::Stone));
+        ImGui::Text("Food: %d", warehouse.GetAmount(ResourceType::Wheat));
+
+        ImGui::Separator();
+
+        i32 used = warehouse.GetUsedSpace();
+        i32 capacity = warehouse.GetCapacity();
+        f32 percent = warehouse.GetUsagePercent();
+
+        ImVec4 color = percent < 0.7f ? ImVec4(0, 1, 0, 1) :
+                       percent < 0.9f ? ImVec4(1, 1, 0, 1) :
+                                        ImVec4(1, 0, 0, 1);
+
+        ImGui::TextColored(color, "Storage: %d / %d (%.1f%%)", used, capacity, percent * 100.0f);
+        ImGui::ProgressBar(percent);
+
+        if (percent > 0.9f)
+        {
+            ImGui::TextColored(ImVec4(1, 0, 0, 1), "WARNING: Warehouse almost full!");
+        }
+
+        ImGui::Separator();
+
+        if (ImGui::CollapsingHeader("Debug Controls"))
+        {
+            if (ImGui::Button("Add Resources"))
+            {
+                warehouse.Add({{ResourceType::Lumber, 50}});
+                warehouse.Add({{ResourceType::Stone, 30}});
+                warehouse.Add({{ResourceType::Wheat, 20}});
+            }
+
+            if (ImGui::Button("Clear Resources"))
+            {
+                warehouse.Consume({{ResourceType::Lumber, warehouse.GetAmount(ResourceType::Lumber)}});
+                warehouse.Consume({{ResourceType::Stone, warehouse.GetAmount(ResourceType::Stone)}});
+                warehouse.Consume({{ResourceType::Wheat, warehouse.GetAmount(ResourceType::Wheat)}});
+            }
+        }
+
+        ImGui::End();
+    }
+
+    void GameLayer::DrawBuildingMenu()
+    {
+        ImGui::Begin("Buildings");
+
+        if (mGameMode == GameMode::Building)
+        {
+            ImGui::TextColored(ImVec4(0, 1, 0, 1), "BUILD MODE ACTIVE");
+            ImGui::Text("Selected: %s", GetBuildingDefinition(mSelectedBuildingType).Name);
+            ImGui::Text("Right-click or ESC to cancel");
+            ImGui::Separator();
+        }
+
+        // Group by category
+        for (u8 c = 0; c < static_cast<u8>(BuildingCategory::Count); ++c)
+        {
+            BuildingCategory category = static_cast<BuildingCategory>(c);
+
+            if (ImGui::CollapsingHeader(BuildingCategoryToString(category), ImGuiTreeNodeFlags_DefaultOpen))
+            {
+                ImGui::Indent();
+
+                for (u8 i = 0; i < static_cast<u8>(BuildingType::Count); ++i)
+                {
+                    BuildingType type = static_cast<BuildingType>(i);
+                    const auto& definition = GetBuildingDefinition(type);
+
+                    if (definition.Category != category)
+                        continue;
+
+                    // Button with hotkey
+                    char label[64];
+                    snprintf(label, sizeof(label), "%s [%d]", definition.Name, static_cast<int>(type) + 1);
+
+                    if (ImGui::Button(label, ImVec2(200, 0)))
+                    {
+                        EnterBuildMode(type);
+                    }
+
+                    ImGui::SameLine();
+                    ImGui::TextDisabled("- %s", definition.Description);
+
+                    // Cost display
+                    ImGui::Indent();
+                    ImGui::Text("Cost:");
+                    for (const auto& [resType, amount] : definition.ConstructionCost)
+                    {
+                        bool has_enough = Warehouse::Get().GetAmount(resType) >= amount;
+                        ImGui::TextColored(
+                            has_enough ? ImVec4(0, 1, 0, 1) : ImVec4(1, 0, 0, 1),
+                            "  %s: %d",
+                            ResourceTypeToString(resType),
+                            amount
+                        );
+                    }
+                    ImGui::Unindent();
+
+                    // Building count
+                    i32 count = BuildingManager::Get().GetBuildingCount(type);
+                    if (count > 0)
+                    {
+                        ImGui::Text("Built: %d", count);
+                    }
+
+                    ImGui::Separator();
+                }
+
+                ImGui::Unindent();
+            }
+        }
+
+        ImGui::End();
+    }
+
+    void GameLayer::DrawBuildingInfo()
+    {
+        if (!mInspectedBuilding)
+            return;
+
+        ImGui::Begin("Building Info");
+
+        const auto& definition = mInspectedBuilding->GetDefinition();
+        const Coordinate& coord = mInspectedBuilding->GetCoordinate();
+
+        ImGui::Text("Name: %s", definition.Name);
+        ImGui::Text("Category: %s", BuildingCategoryToString(definition.Category));
+        ImGui::Text("Location: (%d, %d)", coord.Q, coord.R);
+        ImGui::Text("Active: %s", mInspectedBuilding->IsActive() ? "Yes" : "No");
+
+        ImGui::Separator();
+
+        switch (mInspectedBuilding->GetType())
+        {
+        case BuildingType::Mine:
+        {
+            auto* mine = static_cast<Mine*>(mInspectedBuilding);
+            ImGui::Text("Production: Stone");
+            /*
+            ImGui::Text("Progress:");
+            ImGui::ProgressBar(mine->GetProductionProgress());
+            ImGui::Text("Buffer: %d / %d",
+                       mine->GetBufferAmount(),
+                       mine->GetBufferCapacity());
+
+            if (mine->GetBufferAmount() > 0 && ImGui::Button("Flush Buffer"))
+            {
+                i32 flushed = mine->FlushBuffer();
+                RF_CORE_INFO("Flushed {} stone from mine", flushed);
+            }
+            */
+            break;
+        }
+        default: break;
+        }
+
+
+        ImGui::Separator();
+
+        // Controls
+        if (ImGui::Button(mInspectedBuilding->IsActive() ? "Deactivate" : "Activate"))
+        {
+            mInspectedBuilding->SetActive(!mInspectedBuilding->IsActive());
+        }
+
+        ImGui::SameLine();
+
+        if (ImGui::Button("Destroy"))
+        {
+            BuildingManager::Get().RemoveBuilding(coord);
+            mInspectedBuilding = nullptr;
+        }
+
+        ImGui::End();
+    }
+
+    void GameLayer::DrawSelectionInfo()
+    {
+        if (!mSelection.HasSelection())
+            return;
+
+        ImGui::Begin("Tile Info");
+
+        auto coord = mSelection.GetSelected().value();
+        const Tile* tile = mMap.GetTile(coord);
+
+        if (tile)
+        {
+            ImGui::Text("Coordinate: (%d, %d)", coord.Q, coord.R);
+            ImGui::Text("Type: %s", TileTypeToString(tile->GetType()));
+            ImGui::Text("Elevation: %d", tile->GetElevation());
+
+            // Check if the building can be placed here
+            ImGui::Separator();
+            ImGui::Text("Building Placement:");
+
+            for (u8 i = 0; i < static_cast<u8>(BuildingType::Count); ++i)
+            {
+                BuildingType type = static_cast<BuildingType>(i);
+                bool can_place = BuildingManager::Get().CanPlaceBuilding(type, coord, mMap);
+
+                ImGui::TextColored(
+                    can_place ? ImVec4(0, 1, 0, 1) : ImVec4(1, 0, 0, 1),
+                    "%s: %s",
+                    GetBuildingDefinition(type).Name,
+                    can_place ? "Yes" : "No"
+                );
+            }
+        }
+
+        ImGui::End();
     }
 } // namespace RealmFortress

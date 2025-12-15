@@ -21,8 +21,8 @@ namespace RealmFortress
         void Bind() const;
         void Unbind() const;
 
-        void AddVertexBuffer(const Ref<VertexBuffer>& vertexBuffer);
-        void SetIndexBuffer(const Ref<IndexBuffer>& indexBuffer);
+        void AddVertexBuffer(const Ref<VertexBuffer>& vertex_buffer);
+        void SetIndexBuffer(const Ref<IndexBuffer>& index_buffer);
 
         const std::vector<Ref<VertexBuffer>>& GetVertexBuffers() const { return mVertexBuffers; }
         const Ref<IndexBuffer>& GetIndexBuffer() const { return mIndexBuffer; }

@@ -78,19 +78,19 @@ namespace RealmFortress
         // TODO: frame cleanup
     }
 
-    void Renderer::DrawMesh(const Ref<Shader>& shader, const Ref<VertexArray>& vertexArray, const glm::mat4& transform)
+    void Renderer::DrawMesh(const Ref<Shader>& shader, const Ref<VertexArray>& vertex_array, const glm::mat4& transform)
     {
         shader->Bind();
         shader->SetMat4("uViewProjection", sSceneData.ViewProjectionMatrix);
         shader->SetMat4("uModel", transform);
 
-        DrawIndexed(vertexArray);
+        DrawIndexed(vertex_array);
     }
 
-    void Renderer::DrawIndexed(const Ref<VertexArray>& vertexArray, u32 indexCount)
+    void Renderer::DrawIndexed(const Ref<VertexArray>& vertex_array, u32 index_count)
     {
-        vertexArray->Bind();
-        u32 count = indexCount ? indexCount : vertexArray->GetIndexBuffer()->GetCount();
+        vertex_array->Bind();
+        u32 count = index_count ? index_count : vertex_array->GetIndexBuffer()->GetCount();
 
         glDrawElements(GL_TRIANGLES, count, GL_UNSIGNED_INT, nullptr);
 
@@ -99,14 +99,14 @@ namespace RealmFortress
         sStats.TriangleCount += count / 3;
     }
 
-    void Renderer::DrawArrays(const Ref<VertexArray>& vertexArray, u32 vertexCount)
+    void Renderer::DrawArrays(const Ref<VertexArray>& vertex_array, u32 vertex_count)
     {
-        vertexArray->Bind();
-        glDrawArrays(GL_TRIANGLES, 0, vertexCount);
+        vertex_array->Bind();
+        glDrawArrays(GL_TRIANGLES, 0, vertex_count);
 
         sStats.DrawCalls++;
-        sStats.VertexCount += vertexCount;
-        sStats.TriangleCount += vertexCount / 3;
+        sStats.VertexCount += vertex_count;
+        sStats.TriangleCount += vertex_count / 3;
     }
 
     void Renderer::SetClearColor(const glm::vec4& color)

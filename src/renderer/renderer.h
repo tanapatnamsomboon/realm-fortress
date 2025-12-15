@@ -35,14 +35,14 @@ namespace RealmFortress
         static void EndScene();
 
         static void DrawMesh(const Ref<Shader>&      shader,
-                             const Ref<VertexArray>& vertexArray,
+                             const Ref<VertexArray>& vertex_array,
                              const glm::mat4&        transform = glm::mat4(1.0f));
 
-        static void DrawIndexed(const Ref<VertexArray>& vertexArray,
-                                u32                     indexCount = 0);
+        static void DrawIndexed(const Ref<VertexArray>& vertex_array,
+                                u32                     index_count = 0);
 
-        static void DrawArrays(const Ref<VertexArray>& vertexArray,
-                               u32                     vertexCount);
+        static void DrawArrays(const Ref<VertexArray>& vertex_array,
+                               u32                     vertex_count);
 
         static void SetClearColor(const glm::vec4& color);
         static void SetViewport(u32 x, u32 y, u32 width, u32 height);
