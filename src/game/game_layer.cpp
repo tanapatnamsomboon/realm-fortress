@@ -13,6 +13,8 @@
 #include "game/building/mine.h"
 #include <imgui.h>
 
+#include "renderer/model_cache.h"
+
 namespace RealmFortress
 {
     GameLayer::GameLayer()
@@ -22,8 +24,8 @@ namespace RealmFortress
         mHighlightShader = mShaderLibrary.Load("assets/shaders/highlight.glsl");
 
         auto& window = Application::Get().GetWindow();
-        f32 aspectRatio = static_cast<f32>(window.GetWidth()) / static_cast<f32>(window.GetHeight());
-        mCameraController = CreateRef<CameraController>(aspectRatio);
+        f32 aspect_ratio = static_cast<f32>(window.GetWidth()) / static_cast<f32>(window.GetHeight());
+        mCameraController = CreateRef<CameraController>(aspect_ratio);
     }
 
     void GameLayer::OnAttach()
@@ -112,6 +114,34 @@ namespace RealmFortress
         }
 
         mMap.DrawWithHighlight(mShader, mHighlightShader, highlighted_tiles, highlight_color, mTime);
+
+        mShader->Bind();
+        for (const auto& building : BuildingManager::Get().GetAllBuildings())
+        {
+            if (building && building->GetModel())
+            {
+                building->GetModel()->Draw(mShader, building->GetTransform());
+            }
+        }
+
+        if (mInspectedBuilding && mInspectedBuilding->GetModel())
+        {
+            mHighlightShader->Bind();
+            mHighlightShader->SetMat4("uViewProjection", Renderer::GetViewProjectionMatrix());
+            mHighlightShader->SetFloat3("uHighlightColor", glm::vec3(1.0f, 1.0f, 0.0f));
+            mHighlightShader->SetFloat("uPulseTime", mTime);
+            mHighlightShader->SetFloat("uHighlightIntensity", 0.5f);
+
+            glm::mat4 transform = mInspectedBuilding->GetTransform();
+            transform = glm::scale(transform, glm::vec3(1.05f));
+
+            mInspectedBuilding->GetModel()->Draw(mHighlightShader, transform);
+        }
+
+        if (mGameMode == GameMode::Building)
+        {
+            DrawGhostBuilding();
+        }
 
         Renderer::EndScene();
         Renderer::EndFrame();
@@ -225,6 +255,12 @@ namespace RealmFortress
             return true;
         }
 
+        if (event.GetKeyCode() == Key::F11)
+        {
+            Application::Get().GetWindow().ToggleFullscreen();
+            return true;
+        }
+
         if (event.GetKeyCode() == Key::D1)
         {
             EnterBuildMode(BuildingType::LumberMill);
@@ -297,6 +333,43 @@ namespace RealmFortress
         else
         {
             RF_CORE_WARN("Cannot place building at ({}, {})", coord.Q, coord.R);
+        }
+    }
+
+    void GameLayer::DrawGhostBuilding()
+    {
+        if (!mSelection.HasHover())
+            return;
+
+        auto coord = mSelection.GetHovered().value();
+        bool can_place = BuildingManager::Get().CanPlaceBuilding(mSelectedBuildingType, coord, mMap);
+
+        const auto& definition = GetBuildingDefinition(mSelectedBuildingType);
+        auto model = ModelCache::Get(definition.ModelPath);
+
+        if (!model)
+        {
+            model = ModelCache::Load(definition.ModelPath);
+            if (!model)
+            {
+                model = ModelCache::Get("assets/objects/buildings/blue/building_mine_blue.gltf");
+            }
+        }
+
+        if (model)
+        {
+            mHighlightShader->Bind();
+            mHighlightShader->SetMat4("uViewProjection", Renderer::GetViewProjectionMatrix());
+
+            glm::vec3 color = can_place ? glm::vec3(0.0f, 1.0f, 0.0f) : glm::vec3(1.0f, 0.0f, 0.0f);
+            mHighlightShader->SetFloat3("uHighlightColor", color);
+            mHighlightShader->SetFloat("uPulseTime", mTime);
+            mHighlightShader->SetFloat("uHighlightIntensity", 0.3f);
+
+            glm::mat4 transform = glm::mat4(1.0f);
+            transform = glm::translate(transform, coord.ToWorldPosition());
+
+            model->Draw(mHighlightShader, transform);
         }
     }
 

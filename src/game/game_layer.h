@@ -49,6 +49,7 @@ namespace RealmFortress
         void EnterBuildMode(BuildingType type);
         void ExitBuildMode();
         void PlaceBuildingAtSelection();
+        void DrawGhostBuilding();
         std::unordered_set<Coordinate> GetBuildableTiles() const;
 
         void DrawResourcePanel();

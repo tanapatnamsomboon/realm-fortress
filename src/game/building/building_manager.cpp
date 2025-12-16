@@ -6,6 +6,7 @@
 
 #include "core/base.h"
 #include "building_manager.h"
+#include "renderer/model_cache.h"
 #include "game/building/mine.h"
 #include "game/resource/warehouse.h"
 
@@ -68,6 +69,16 @@ namespace RealmFortress
             // refund
             Warehouse::Get().Add(definition.ConstructionCost);
             return false;
+        }
+
+        auto model = ModelCache::Load(definition.ModelPath);
+        if (model)
+        {
+            building->SetModel(model);
+        }
+        else
+        {
+            RF_CORE_WARN("Failed to load model for {}: {}", definition.Name, definition.ModelPath);
         }
 
         building->OnPlaced();

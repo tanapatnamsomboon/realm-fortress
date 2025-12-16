@@ -41,6 +41,7 @@ namespace RealmFortress
         BuildingCategory Category;
         ResourceCost     ConstructionCost;
         f32              ConstructionTime;
+        const char*      ModelPath;
     };
 
     inline const BuildingDefinition& GetBuildingDefinition(BuildingType type)
@@ -51,21 +52,24 @@ namespace RealmFortress
                 "Produces lumber from nearby trees",
                 BuildingCategory::Production,
                 { { ResourceType::Lumber, 10 }, { ResourceType::Stone, 5 } },
-                5.0f
+                5.0f,
+                "assets/objects/buildings/blue/building_lumbermill_blue.gltf"
             },
             {
                 "Mine",
                 "Extracts stone from the ground",
                 BuildingCategory::Production,
                 { { ResourceType::Lumber, 15 }, { ResourceType::Stone, 3 } },
-                8.0f
+                8.0f,
+                "assets/objects/buildings/blue/building_mine_blue.gltf"
             },
             {
                 "Farm",
                 "Grows food for your settlement",
                 BuildingCategory::Production,
                 { { ResourceType::Lumber, 8 }, { ResourceType::Stone, 2 } },
-                4.0f
+                4.0f,
+                "assets/objects/buildings/blue/building_farm_blue.gltf"
             },
         };
         return definitions[static_cast<size_t>(type)];
