@@ -183,4 +183,44 @@ namespace RealmFortress
         mData.mVSync = enabled;
         glfwSwapInterval(mData.mVSync ? 1 : 0);
     }
+
+    void Window::SetFullscreen(bool enabled)
+    {
+        if (mData.mFullscreen == enabled)
+            return;
+
+        mData.mFullscreen = enabled;
+
+        if (enabled)
+        {
+            glfwGetWindowPos(mWindow, &mData.mWindowedPosX, &mData.mWindowedPosY);
+            glfwGetWindowSize(mWindow,
+                              reinterpret_cast<int*>(&mData.mWindowedWidth),
+                              reinterpret_cast<int*>(&mData.mWindowedHeight));
+
+            GLFWmonitor* monitor = glfwGetPrimaryMonitor();
+            const GLFWvidmode* mode = glfwGetVideoMode(monitor);
+
+            glfwSetWindowMonitor(mWindow, monitor, 0, 0, mode->width, mode->height, mode->refreshRate);
+
+            mData.mWidth = mode->width;
+            mData.mHeight = mode->height;
+
+            RF_CORE_INFO("Switched to fullscreen: {}x{}", mode->width, mode->height);
+        }
+        else
+        {
+            glfwSetWindowMonitor(mWindow, nullptr,
+                                 mData.mWindowedPosX, mData.mWindowedPosY,
+                                 mData.mWindowedWidth, mData.mWindowedHeight,
+                                 0);
+
+            mData.mWidth = mData.mWindowedWidth;
+            mData.mHeight = mData.mWindowedHeight;
+
+            RF_CORE_INFO("Switched to windowed: {}x{}", mData.mWidth, mData.mHeight);
+        }
+
+        SetVSync(mData.mVSync);
+    }
 } // namespace RealmFortress
