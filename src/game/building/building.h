@@ -69,7 +69,7 @@ namespace RealmFortress
                 BuildingCategory::Production,
                 { { ResourceType::Lumber, 8 }, { ResourceType::Stone, 2 } },
                 4.0f,
-                "assets/objects/buildings/blue/building_farm_blue.gltf"
+                "assets/objects/buildings/neutral/building_grain.gltf"
             },
         };
         return definitions[static_cast<size_t>(type)];

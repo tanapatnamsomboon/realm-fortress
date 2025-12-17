@@ -50,6 +50,7 @@ namespace RealmFortress
         static void SetDepthTest(bool enabled);
         static void SetCullFace(bool enabled);
         static void SetWireframe(bool enabled);
+        static void SetSceneViewProjection(const glm::mat4& view_projection);
 
         static void Clear();
 

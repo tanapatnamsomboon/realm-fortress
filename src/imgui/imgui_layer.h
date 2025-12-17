@@ -28,8 +28,6 @@ namespace RealmFortress
 
         void BlockEvent(bool block) { mBlockEvent = block; }
 
-        void SetDarkThemeColors();
-
     private:
         bool mBlockEvent = true;
         f32 mTime = 0.0f;

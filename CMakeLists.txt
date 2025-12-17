@@ -53,6 +53,8 @@ set(REALM_FORTRESS_SOURCES
         # Renderer
         src/renderer/buffer.cpp
         src/renderer/buffer.h
+        src/renderer/framebuffer.cpp
+        src/renderer/framebuffer.h
         src/renderer/graphics_context.cpp
         src/renderer/graphics_context.h
         src/renderer/material.cpp
@@ -84,6 +86,8 @@ set(REALM_FORTRESS_SOURCES
         src/game/application_impl.cpp
         src/game/game_layer.cpp
         src/game/game_layer.h
+        src/game/thumbnail_generator.cpp
+        src/game/thumbnail_generator.h
 
         # Game - UI
 

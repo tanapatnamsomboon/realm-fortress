@@ -148,6 +148,11 @@ namespace RealmFortress
         glPolygonMode(GL_FRONT_AND_BACK, enabled ? GL_LINE : GL_FILL);
     }
 
+    void Renderer::SetSceneViewProjection(const glm::mat4& view_projection)
+    {
+        sSceneData.ViewProjectionMatrix = view_projection;
+    }
+
     void Renderer::Clear()
     {
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);

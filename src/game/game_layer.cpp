@@ -10,10 +10,10 @@
 #include "core/application.h"
 #include "core/input.h"
 #include "renderer/renderer.h"
-#include "game/building/mine.h"
-#include <imgui.h>
-
 #include "renderer/model_cache.h"
+#include "game/building/mine.h"
+#include "game/thumbnail_generator.h"
+#include <imgui.h>
 
 namespace RealmFortress
 {
@@ -32,7 +32,7 @@ namespace RealmFortress
     {
         RF_CORE_INFO("GameLayer attached");
 
-        Renderer::SetClearColor(glm::vec4(0.53f, 0.81f, 0.92f, 1.0f));
+        ThumbnailGenerator::Init(512);
 
         mCameraController->GetCamera().SetPosition(glm::vec3(0.0f, 15.0f, 15.0f));
         mCameraController->GetCamera().SetRotation(glm::vec3(-45.0f, 0.0f, 0.0f));
@@ -54,12 +54,15 @@ namespace RealmFortress
         RF_CORE_INFO("Warehouse capacity: {} / {}",
                      Warehouse::Get().GetUsedSpace(),
                      Warehouse::Get().GetCapacity());
+
+        SetupTheme();
     }
 
     void GameLayer::OnDetach()
     {
         RF_CORE_INFO("GameLayer detached");
         BuildingManager::Get().Clear();
+        ThumbnailGenerator::Shutdown();
     }
 
     void GameLayer::OnUpdate(Timestep ts)
@@ -70,6 +73,8 @@ namespace RealmFortress
         BuildingManager::Get().OnUpdate(ts);
 
         Renderer::BeginFrame();
+
+        Renderer::SetClearColor(glm::vec4(0.53f, 0.81f, 0.92f, 1.0f));
         Renderer::Clear();
 
         mCameraController->OnUpdate(ts);
@@ -149,27 +154,39 @@ namespace RealmFortress
 
     void GameLayer::OnImGuiRender()
     {
-        DrawResourcePanel();
-        DrawBuildingMenu();
+        ImGuiViewport* viewport = ImGui::GetMainViewport();
 
-        if (mInspectedBuilding)
+        ImGui::SetNextWindowPos(viewport->WorkPos);
+        ImGui::SetNextWindowSize(viewport->WorkSize);
+
+        ImGuiWindowFlags flags = ImGuiWindowFlags_NoResize |
+                                 ImGuiWindowFlags_NoTitleBar |
+                                 ImGuiWindowFlags_NoDecoration |
+                                 ImGuiWindowFlags_NoBackground |
+                                 ImGuiWindowFlags_NoMove ;
+
+        ImGui::Begin("MainWindow", nullptr, flags);
+
+        if (ImGui::BeginTable("MainLayout", 3))
         {
-            DrawBuildingInfo();
-        }
-        else if (mSelection.HasSelection())
-        {
-            DrawSelectionInfo();
+            ImGui::TableSetupColumn("Left", ImGuiTableColumnFlags_WidthStretch);
+            ImGui::TableSetupColumn("Center", ImGuiTableColumnFlags_WidthFixed);
+            ImGui::TableSetupColumn("Right", ImGuiTableColumnFlags_WidthStretch);
+
+            ImGui::TableNextColumn();
+            DrawLeft();
+
+            ImGui::TableNextColumn();
+            DrawCenter();
+
+            ImGui::TableNextColumn();
+            ImGui::BeginChild("RightWindow", ImVec2(0, 0), 0, ImGuiWindowFlags_NoBackground);
+            ImGui::EndChild();
+
+            ImGui::EndTable();
         }
 
-        ImGui::Begin("Debug");
-        ImGui::Text("FPS: %.1f", ImGui::GetIO().Framerate);
-        ImGui::Text("Mode: %s", mGameMode == GameMode::Building ? "Building" : "Normal");
-        ImGui::Text("Buildings: %zu", BuildingManager::Get().GetAllBuildings().size());
-
-        if (ImGui::Button("Clear All Buildings"))
-        {
-            BuildingManager::Get().Clear();
-        }
+        DrawTimeHUD();
 
         ImGui::End();
     }
@@ -388,224 +405,168 @@ namespace RealmFortress
         return buildable;
     }
 
-    void GameLayer::DrawResourcePanel()
+    void GameLayer::SetupTheme()
     {
-        ImGui::Begin("Resources");
+        ImGuiStyle& style = ImGui::GetStyle();
 
-        auto& warehouse = Warehouse::Get();
+        style.WindowRounding    = 6.0f;
+        style.ChildRounding     = 5.0f;
+        style.FrameRounding     = 3.0f;
+        style.PopupRounding     = 5.0f;
+        style.GrabRounding      = 3.0f;
+        style.TabRounding       = 3.0f;
 
-        ImGui::Text("Lumber: %d", warehouse.GetAmount(ResourceType::Lumber));
-        ImGui::Text("Stone: %d", warehouse.GetAmount(ResourceType::Stone));
-        ImGui::Text("Food: %d", warehouse.GetAmount(ResourceType::Wheat));
+        style.WindowBorderSize  = 0.0f;
+        style.FrameBorderSize   = 0.0f;
+        style.PopupBorderSize   = 0.0f;
+        style.ImageBorderSize   = 0.0f;
 
-        ImGui::Separator();
-
-        i32 used = warehouse.GetUsedSpace();
-        i32 capacity = warehouse.GetCapacity();
-        f32 percent = warehouse.GetUsagePercent();
-
-        ImVec4 color = percent < 0.7f ? ImVec4(0, 1, 0, 1) :
-                       percent < 0.9f ? ImVec4(1, 1, 0, 1) :
-                                        ImVec4(1, 0, 0, 1);
-
-        ImGui::TextColored(color, "Storage: %d / %d (%.1f%%)", used, capacity, percent * 100.0f);
-        ImGui::ProgressBar(percent);
-
-        if (percent > 0.9f)
-        {
-            ImGui::TextColored(ImVec4(1, 0, 0, 1), "WARNING: Warehouse almost full!");
-        }
-
-        ImGui::Separator();
-
-        if (ImGui::CollapsingHeader("Debug Controls"))
-        {
-            if (ImGui::Button("Add Resources"))
-            {
-                warehouse.Add({{ResourceType::Lumber, 50}});
-                warehouse.Add({{ResourceType::Stone, 30}});
-                warehouse.Add({{ResourceType::Wheat, 20}});
-            }
-
-            if (ImGui::Button("Clear Resources"))
-            {
-                warehouse.Consume({{ResourceType::Lumber, warehouse.GetAmount(ResourceType::Lumber)}});
-                warehouse.Consume({{ResourceType::Stone, warehouse.GetAmount(ResourceType::Stone)}});
-                warehouse.Consume({{ResourceType::Wheat, warehouse.GetAmount(ResourceType::Wheat)}});
-            }
-        }
-
-        ImGui::End();
+        style.WindowPadding     = ImVec2(15, 15);
+        style.ItemSpacing       = ImVec2(10, 10);
+        style.FramePadding      = ImVec2(5, 5);
     }
 
-    void GameLayer::DrawBuildingMenu()
+    void GameLayer::DrawLeft()
     {
-        ImGui::Begin("Buildings");
-
-        if (mGameMode == GameMode::Building)
+        ImGui::BeginChild("LeftWindow", ImVec2(0, 0), 0, ImGuiWindowFlags_NoBackground);
+        if (UI_PANEL_IS_OPEN(mUIPanelFlags, UIPanelBuilding))
         {
-            ImGui::TextColored(ImVec4(0, 1, 0, 1), "BUILD MODE ACTIVE");
-            ImGui::Text("Selected: %s", GetBuildingDefinition(mSelectedBuildingType).Name);
-            ImGui::Text("Right-click or ESC to cancel");
-            ImGui::Separator();
+            DrawBuildingPanel();
+
+            if (UI_PANEL_IS_OPEN(mUIPanelFlags, UIPanelBuildConfirm))
+            {
+                DrawBuildConfirmPanel();
+            }
+
+        }
+        ImGui::EndChild();
+    }
+
+    void GameLayer::DrawCenter()
+    {
+        ImGui::BeginChild("CenterWindow", ImVec2(0, 0), ImGuiChildFlags_AlwaysAutoResize | ImGuiChildFlags_AutoResizeX, ImGuiWindowFlags_NoBackground);
+        DrawActionBar();
+        ImGui::EndChild();
+    }
+
+    void GameLayer::DrawTimeHUD()
+    {
+    }
+
+    void GameLayer::DrawActionBar()
+    {
+        ImVec2 avail = ImGui::GetContentRegionAvail();
+        ImVec2 pos = ImGui::GetWindowPos(); // parent position
+        ImVec2 at(pos.x, pos.y + avail.y - mUIData.ActionBarButtonSize);
+        ImGui::SetNextWindowPos(at);
+
+        ImGuiChildFlags child_flags = ImGuiChildFlags_AutoResizeX | ImGuiChildFlags_AutoResizeY | ImGuiChildFlags_AlwaysAutoResize;
+
+        ImGui::BeginChild("ActionBar", ImVec2(0.0f, 0.0f), child_flags, ImGuiWindowFlags_NoBackground);
+
+        if (ImGui::Button("Building", ImVec2(mUIData.ActionBarButtonSize, mUIData.ActionBarButtonSize)))
+        {
+            UI_PANEL_TOGGLE(mUIPanelFlags, UIPanelBuilding);
+            if (UI_PANEL_IS_OPEN(mUIPanelFlags, UIPanelBuilding)) UI_PANEL_OPEN_ONLY(mUIPanelFlags, UIPanelBuilding);
         }
 
-        // Group by category
-        for (u8 c = 0; c < static_cast<u8>(BuildingCategory::Count); ++c)
-        {
-            BuildingCategory category = static_cast<BuildingCategory>(c);
+        ImGui::SameLine();
 
-            if (ImGui::CollapsingHeader(BuildingCategoryToString(category), ImGuiTreeNodeFlags_DefaultOpen))
+        if (ImGui::Button("Economy", ImVec2(mUIData.ActionBarButtonSize, mUIData.ActionBarButtonSize)))
+        {
+            UI_PANEL_TOGGLE(mUIPanelFlags, UIPanelEconomy);
+            if (UI_PANEL_IS_OPEN(mUIPanelFlags, UIPanelEconomy)) UI_PANEL_OPEN_ONLY(mUIPanelFlags, UIPanelEconomy);
+        }
+
+        ImGui::EndChild();
+    }
+
+    void GameLayer::DrawBuildingPanel()
+    {
+        ImVec2 pos = ImGui::GetWindowPos();
+        ImVec2 size = ImGui::GetWindowSize();
+        ImVec2 at(pos.x, pos.y + size.y - mUIData.BuildingPanelHeight);
+
+        ImGui::SetNextWindowPos(at);
+
+        ImGui::PushStyleColor(ImGuiCol_ChildBg, IM_COL32(51, 50, 33, 255));
+        ImGui::BeginChild("BuildingPanel", ImVec2(size.x, mUIData.BuildingPanelHeight), ImGuiChildFlags_AlwaysUseWindowPadding);
+        {
+            f32 button_size = mUIData.BuildingPanelThumbnailSize;
+            f32 spacing = ImGui::GetStyle().ItemSpacing.x;
+            f32 avail_width = ImGui::GetContentRegionAvail().x;
+            int columns = static_cast<int>((avail_width + spacing) / (button_size + spacing));
+            columns = std::max(3, columns);
+
+            if (ImGui::BeginTable("BuildGrid", columns, ImGuiTableFlags_SizingStretchSame))
             {
-                ImGui::Indent();
+                i32 cell_index = 0;
 
                 for (u8 i = 0; i < static_cast<u8>(BuildingType::Count); ++i)
                 {
                     BuildingType type = static_cast<BuildingType>(i);
                     const auto& definition = GetBuildingDefinition(type);
 
-                    if (definition.Category != category)
-                        continue;
+                    if (cell_index % columns == 0)
+                        ImGui::TableNextRow();
 
-                    // Button with hotkey
-                    char label[64];
-                    snprintf(label, sizeof(label), "%s [%d]", definition.Name, static_cast<int>(type) + 1);
+                    ImGui::TableNextColumn();
 
-                    if (ImGui::Button(label, ImVec2(200, 0)))
+                    u32 thumbnail_id = ThumbnailGenerator::GetThumbnail(definition.ModelPath);
+                    ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(0, 0));
+                    if (ImGui::ImageButton(
+                        definition.Name,
+                        thumbnail_id,
+                        ImVec2(button_size, button_size),
+                        ImVec2(0, 1), ImVec2(1, 0),
+                        ImGui::ColorConvertU32ToFloat4(IM_COL32(125, 127, 102, 255))
+                        ))
                     {
-                        EnterBuildMode(type);
+                        if (UI_PANEL_IS_OPEN(mUIPanelFlags, UIPanelBuildConfirm) && mSelectedBuildingToConfirm == type)
+                        {
+                            UI_PANEL_CLOSE(mUIPanelFlags, UIPanelBuildConfirm);
+                        }
+                        else
+                        {
+                            UI_PANEL_OPEN(mUIPanelFlags, UIPanelBuildConfirm);
+                            mSelectedBuildingToConfirm = type;
+                        }
                     }
+                    ImGui::PopStyleVar();
 
-                    ImGui::SameLine();
-                    ImGui::TextDisabled("- %s", definition.Description);
+                    f32 name_length = ImGui::CalcTextSize(definition.Name).x;
+                    f32 offset = ((button_size - name_length) / 2.0f);
+                    ImGui::SetCursorPosX(ImGui::GetCursorPosX() + offset);
+                    ImGui::Text("%s", definition.Name);
 
-                    // Cost display
-                    ImGui::Indent();
-                    ImGui::Text("Cost:");
-                    for (const auto& [resType, amount] : definition.ConstructionCost)
-                    {
-                        bool has_enough = Warehouse::Get().GetAmount(resType) >= amount;
-                        ImGui::TextColored(
-                            has_enough ? ImVec4(0, 1, 0, 1) : ImVec4(1, 0, 0, 1),
-                            "  %s: %d",
-                            ResourceTypeToString(resType),
-                            amount
-                        );
-                    }
-                    ImGui::Unindent();
-
-                    // Building count
-                    i32 count = BuildingManager::Get().GetBuildingCount(type);
-                    if (count > 0)
-                    {
-                        ImGui::Text("Built: %d", count);
-                    }
-
-                    ImGui::Separator();
+                    cell_index++;
                 }
 
-                ImGui::Unindent();
+                ImGui::EndTable(); // BuildGrid
             }
         }
-
-        ImGui::End();
+        ImGui::EndChild(); // BuildPanel
+        ImGui::PopStyleColor();
     }
 
-    void GameLayer::DrawBuildingInfo()
+    void GameLayer::DrawBuildConfirmPanel()
     {
-        if (!mInspectedBuilding)
-            return;
+        if (!mSelectedBuildingToConfirm.has_value()) return;
 
-        ImGui::Begin("Building Info");
+        ImVec2 size = ImGui::GetWindowSize();
+        ImVec2 pos = ImGui::GetWindowPos();
+        ImVec2 at(pos.x, pos.y + size.y - mUIData.BuildingPanelHeight - mUIData.BuildConfirmPanelHeight - ImGui::GetStyle().WindowPadding.y);
 
-        const auto& definition = mInspectedBuilding->GetDefinition();
-        const Coordinate& coord = mInspectedBuilding->GetCoordinate();
+        ImGui::SetNextWindowPos(at);
 
-        ImGui::Text("Name: %s", definition.Name);
-        ImGui::Text("Category: %s", BuildingCategoryToString(definition.Category));
-        ImGui::Text("Location: (%d, %d)", coord.Q, coord.R);
-        ImGui::Text("Active: %s", mInspectedBuilding->IsActive() ? "Yes" : "No");
-
-        ImGui::Separator();
-
-        switch (mInspectedBuilding->GetType())
-        {
-        case BuildingType::Mine:
-        {
-            auto* mine = static_cast<Mine*>(mInspectedBuilding);
-            ImGui::Text("Production: Stone");
-            /*
-            ImGui::Text("Progress:");
-            ImGui::ProgressBar(mine->GetProductionProgress());
-            ImGui::Text("Buffer: %d / %d",
-                       mine->GetBufferAmount(),
-                       mine->GetBufferCapacity());
-
-            if (mine->GetBufferAmount() > 0 && ImGui::Button("Flush Buffer"))
-            {
-                i32 flushed = mine->FlushBuffer();
-                RF_CORE_INFO("Flushed {} stone from mine", flushed);
-            }
-            */
-            break;
-        }
-        default: break;
-        }
-
-
-        ImGui::Separator();
-
-        // Controls
-        if (ImGui::Button(mInspectedBuilding->IsActive() ? "Deactivate" : "Activate"))
-        {
-            mInspectedBuilding->SetActive(!mInspectedBuilding->IsActive());
-        }
-
-        ImGui::SameLine();
-
-        if (ImGui::Button("Destroy"))
-        {
-            BuildingManager::Get().RemoveBuilding(coord);
-            mInspectedBuilding = nullptr;
-        }
-
-        ImGui::End();
+        ImGui::BeginChild("BuildConfirmPanel", ImVec2(mUIData.BuildConfirmPanelWidth, mUIData.BuildConfirmPanelHeight), ImGuiChildFlags_AlwaysUseWindowPadding);
+        BuildingDefinition definition = GetBuildingDefinition(mSelectedBuildingType);
+        ImGui::Text(definition.Name);
+        ImGui::Button("BUILD", ImVec2(50.0f, 50.0f));
+        ImGui::EndChild();
     }
 
-    void GameLayer::DrawSelectionInfo()
+    void GameLayer::DrawEconomyPanel()
     {
-        if (!mSelection.HasSelection())
-            return;
-
-        ImGui::Begin("Tile Info");
-
-        auto coord = mSelection.GetSelected().value();
-        const Tile* tile = mMap.GetTile(coord);
-
-        if (tile)
-        {
-            ImGui::Text("Coordinate: (%d, %d)", coord.Q, coord.R);
-            ImGui::Text("Type: %s", TileTypeToString(tile->GetType()));
-            ImGui::Text("Elevation: %d", tile->GetElevation());
-
-            // Check if the building can be placed here
-            ImGui::Separator();
-            ImGui::Text("Building Placement:");
-
-            for (u8 i = 0; i < static_cast<u8>(BuildingType::Count); ++i)
-            {
-                BuildingType type = static_cast<BuildingType>(i);
-                bool can_place = BuildingManager::Get().CanPlaceBuilding(type, coord, mMap);
-
-                ImGui::TextColored(
-                    can_place ? ImVec4(0, 1, 0, 1) : ImVec4(1, 0, 0, 1),
-                    "%s: %s",
-                    GetBuildingDefinition(type).Name,
-                    can_place ? "Yes" : "No"
-                );
-            }
-        }
-
-        ImGui::End();
     }
 } // namespace RealmFortress
