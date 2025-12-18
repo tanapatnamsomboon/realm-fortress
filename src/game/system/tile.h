@@ -13,6 +13,40 @@
 
 namespace RealmFortress
 {
+    enum class DecorationType : u8
+    {
+        None,
+        TreeSmall,
+        TreeMedium,
+        TreeLarge,
+        Mountain,
+        MountainGrass,
+        MountainGrassTree,
+
+        Count
+    };
+
+    inline const char* DecorationTypeToModelPath(DecorationType type)
+    {
+        switch (type)
+        {
+        case DecorationType::TreeSmall:
+            return "assets/objects/decoration/nature/trees_A_small.gltf";
+        case DecorationType::TreeMedium:
+            return "assets/objects/decoration/nature/trees_A_medium.gltf";
+        case DecorationType::TreeLarge:
+            return "assets/objects/decoration/nature/trees_A_large.gltf";
+        case DecorationType::Mountain:
+            return "assets/objects/decoration/nature/mountain_A.gltf";
+        case DecorationType::MountainGrass:
+            return "assets/objects/decoration/nature/mountain_A_grass.gltf";
+        case DecorationType::MountainGrassTree:
+            return "assets/objects/decoration/nature/mountain_A_grass_tree.gltf";
+        default:
+            return nullptr;
+        }
+    }
+
     enum class TileType : u8
     {
         None = 0,
@@ -26,6 +60,9 @@ namespace RealmFortress
 
         Count
     };
+
+    const char* TileTypeToString(TileType type);
+    std::string TileTypeToModelPath(TileType type);
 
     class Tile
     {
@@ -53,6 +90,11 @@ namespace RealmFortress
         bool IsWalkable() const;
         bool IsWater() const;
 
+        void SetDecoration(DecorationType decoration);
+
+        DecorationType GetDecoration() const { return mDecoration; }
+        Ref<Model> GetDecorationModel() const { return mDecorationModel; }
+
     private:
         Coordinate mCoordinate{};
         TileType mType{ TileType::None };
@@ -60,8 +102,8 @@ namespace RealmFortress
         f32 mRotation{ 0.0f };
         i32 mElevation{ 0 };
         Ref<Model> mModel{ nullptr };
-    };
 
-    const char* TileTypeToString(TileType type);
-    std::string TileTypeToModelPath(TileType type);
+        DecorationType mDecoration{ DecorationType::None };
+        Ref<Model> mDecorationModel;
+    };
 } // namespace RealmFortress

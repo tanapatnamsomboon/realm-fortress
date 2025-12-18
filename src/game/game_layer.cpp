@@ -38,7 +38,8 @@
             mCameraController->GetCamera().SetPosition(glm::vec3(0.0f, 15.0f, 15.0f));
             mCameraController->GetCamera().SetRotation(glm::vec3(-45.0f, 0.0f, 0.0f));
 
-            mMap.GenerateHexagon(5, TileType::Grass);
+            u32 seed = static_cast<u32>(std::time(nullptr));
+            mMap.GenerateWithNoise(20, seed);
 
             bool success = Warehouse::Get().Add({
                 { ResourceType::Lumber, 100 },
@@ -98,8 +99,7 @@
                 if (mSelection.HasHover())
                 {
                     auto hovered = mSelection.GetHovered().value();
-                    bool can_place = BuildingManager::Get().CanPlaceBuilding(
-                        mSelectedBuildingType, hovered, mMap);
+                    bool can_place = BuildingManager::Get().CanPlaceBuilding(mSelectedBuildingType, hovered, mMap);
 
                     highlighted_tiles.insert(hovered);
                     highlight_color = can_place ? glm::vec3(0.0f, 1.0f, 0.0f) : glm::vec3(1.0f, 0.0f, 0.0f);
@@ -119,7 +119,7 @@
                 }
             }
 
-            mMap.DrawWithHighlight(mShader, mHighlightShader, highlighted_tiles, highlight_color, mTime);
+            mMap.Draw(mShader);
 
             mShader->Bind();
             for (const auto& building : BuildingManager::Get().GetAllBuildings())
@@ -160,6 +160,7 @@
 
             DrawTimeHUD();
             DrawActionBar(&action_bar_pos, &action_bar_size);
+
             if (UI_PANEL_IS_OPEN(mUIPanelFlags, UIPanelBuilding))
             {
                 DrawBuildingPanel(action_bar_pos, action_bar_size, &building_panel_pos, &building_panel_size);
@@ -168,6 +169,11 @@
                 {
                     DrawBuildConfirmPanel(building_panel_pos, building_panel_size);
                 }
+            }
+
+            if (UI_PANEL_IS_OPEN(mUIPanelFlags, UIPanelEconomy))
+            {
+                DrawEconomyPanel();
             }
         }
 
@@ -412,6 +418,9 @@
         constexpr f32 BuildingPanel_ThumbnailSize{ 80.0f };
 
         constexpr f32 BuildConfirmPanel_Height{ 250.0f };
+
+        constexpr f32 EconomyPanel_HeightScale{ 0.61f };
+        constexpr f32 EconomyPanel_WidthScale{ 0.32f };
 
         void GameLayer::DrawTimeHUD()
         {
@@ -708,5 +717,87 @@
 
         void GameLayer::DrawEconomyPanel()
         {
+            ImGuiViewport* viewport = ImGui::GetMainViewport();
+
+            ImVec2 pos(viewport->Pos.x + viewport->Size.x / 2.0f, viewport->Pos.y + viewport->Size.y / 2.0f);
+            ImGui::SetNextWindowPos(pos, ImGuiCond_Always, ImVec2(0.5f, 0.5f));
+
+            ImVec2 size(viewport->Size.x * EconomyPanel_WidthScale, viewport->Size.y * EconomyPanel_HeightScale);
+            ImGui::SetNextWindowSize(size, ImGuiCond_Always);
+
+            ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoNav
+                                          | ImGuiWindowFlags_NoTitleBar
+                                          | ImGuiWindowFlags_NoResize
+                                          | ImGuiWindowFlags_NoMove
+                                          | ImGuiWindowFlags_NoSavedSettings
+                                          | ImGuiWindowFlags_NoBackground
+                                          | ImGuiWindowFlags_NoDecoration
+                                          | ImGuiWindowFlags_NoBringToFrontOnFocus;
+
+            ImGui::Begin("EconomyPanel", nullptr, window_flags);
+            {
+                ImGuiChildFlags child_flags = ImGuiChildFlags_AlwaysUseWindowPadding;
+
+                ImGui::PushStyleColor(ImGuiCol_ChildBg, IM_COL32(26, 29, 20, 255));
+                ImGui::BeginChild("EconomyPanelBG", ImVec2(0.0f, 0.0f), child_flags);
+                {
+                    ImVec2 avail = ImGui::GetContentRegionAvail();
+
+                    ImGui::SetWindowFontScale(2.5f);
+                    ImVec2 text_size = ImGui::CalcTextSize("ECONOMY");
+                    ImGui::SetCursorPosX(ImGui::GetCursorPosX() + avail.x / 2.0f - text_size.x / 2.0f);
+                    ImGui::TextUnformatted("ECONOMY");
+
+                    /*
+                    ImGui::SameLine(-32.0f);
+                    if (ImGui::SmallButton("X"))
+                    {
+                        UI_PANEL_CLOSE(mUIPanelFlags, UIPanelEconomy);
+                    }
+                    */
+
+                    ImGui::Spacing();
+                    ImGui::Separator();
+                    ImGui::Spacing();
+
+                    ImGuiTableFlags table_flags = ImGuiTableFlags_RowBg
+                                                | ImGuiTableFlags_BordersInnerH
+                                                | ImGuiTableFlags_SizingStretchProp;
+                    if (ImGui::BeginTable("EconomyPanelTable", 3, table_flags))
+                    {
+                        ImGui::TableSetupColumn("Icon", ImGuiTableColumnFlags_WidthFixed, 32.0f);
+                        ImGui::TableSetupColumn("Resource");
+                        ImGui::TableSetupColumn("Amount", ImGuiTableColumnFlags_WidthFixed, 80.0f);
+
+                        for (u8 i = 0; i < static_cast<u8>(ResourceType::Count); i++)
+                        {
+                            ResourceType resource = static_cast<ResourceType>(i);
+                            i32 amount = Warehouse::Get().GetAmount(resource);
+
+                            ImGui::TableNextRow();
+
+                            // Icon
+                            ImGui::TableSetColumnIndex(0);
+                            u32 icon = ThumbnailGenerator::GetThumbnail(ResourceTypeToThumbnailModelPath(resource), 2.5f);
+                            ImGui::Image(icon, ImVec2(32.0f, 32.0f), ImVec2(0, 1), ImVec2(1, 0));
+
+                            // Name
+                            ImGui::SetWindowFontScale(1.5f);
+                            ImGui::TableSetColumnIndex(1);
+                            ImGui::Text(ResourceTypeToString(resource));
+
+                            // Amount
+                            ImGui::TableSetColumnIndex(2);
+                            ImGui::Text("%d", amount);
+                            ImGui::SetWindowFontScale(1.0f);
+                        }
+
+                        ImGui::EndTable();
+                    }
+                }
+                ImGui::EndChild();
+                ImGui::PopStyleColor();
+            }
+            ImGui::End();
         }
     } // namespace RealmFortress

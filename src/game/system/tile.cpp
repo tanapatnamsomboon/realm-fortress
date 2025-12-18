@@ -8,6 +8,8 @@
 #include "tile.h"
 #include <glm/gtc/matrix_transform.hpp>
 
+#include "renderer/model_cache.h"
+
 namespace RealmFortress
 {
     Tile::Tile(const Coordinate& coord, TileType type, const std::string& model_path, i32 elevation)
@@ -59,6 +61,19 @@ namespace RealmFortress
     bool Tile::IsWater() const
     {
         return mType == TileType::Water || mType == TileType::River;
+    }
+
+    void Tile::SetDecoration(DecorationType decoration)
+    {
+        mDecoration = decoration;
+        if (decoration != DecorationType::None)
+        {
+            const char* path = DecorationTypeToModelPath(decoration);
+            if (path)
+            {
+                mDecorationModel = ModelCache::Load(path);
+            }
+        }
     }
 
     const char* TileTypeToString(TileType type)

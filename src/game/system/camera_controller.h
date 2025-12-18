@@ -33,6 +33,9 @@ namespace RealmFortress
         f32 mFOV = 45.0f;
         f32 mNearClip = 0.1f;
         f32 mFarClip = 1000.0f;
+        f32 mYaw = 0.0f;
+        f32 mZoomLevel = 1.0f;
+        f32 mTargetZoomLevel = 1.0f;
 
         PerspectiveCamera mCamera;
 

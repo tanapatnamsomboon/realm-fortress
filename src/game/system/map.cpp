@@ -6,6 +6,7 @@
 
 #include "core/pch.h"
 #include "map.h"
+#include "game/perlin_noise.h"
 #include "renderer/model_cache.h"
 
 namespace RealmFortress
@@ -59,6 +60,101 @@ namespace RealmFortress
         }
 
         RF_CORE_INFO("Generated hexagonal map with radius {} ({} tiles)", radius, mTiles.size());
+    }
+
+    struct NoiseConfig
+    {
+        f32 scale = 0.1f;              // Zoom level (smaller = more zoomed out)
+        i32 octaves = 4;               // Detail layers
+        f32 persistence = 0.5f;        // Roughness
+
+        f32 water_threshold = 0.35f;    // % water
+        f32 forest_threshold = 0.55f;   // % forest
+        f32 mountain_threshold = 0.75f; // % mountain
+    };
+
+    void Map::GenerateWithNoise(i32 radius, u32 seed)
+    {
+        Clear();
+
+        PerlinNoise noise(seed);
+        std::mt19937 rng(seed);
+        std::uniform_real_distribution dist(0.0f, 1.0f);
+
+        f32 scale = 0.1f;
+        i32 octaves = 4;
+        f32 persistence = 0.5f;
+
+        f32 water_threshold = 0.30f;
+        f32 forest_threshold = 0.60f;
+        f32 mountain_threshold = 0.70f;
+
+        for (i32 q = -radius; q <= radius; ++q)
+        {
+            i32 r1 = std::max(-radius, -q - radius);
+            i32 r2 = std::min(radius, -q + radius);
+
+            for (i32 r = r1; r <= r2; ++r)
+            {
+                Coordinate coord(q, r);
+
+                f32 noise_value = noise.OctaveNoise(q * scale, r * scale, octaves, persistence);
+
+                TileType tile_type;
+                DecorationType decoration = DecorationType::None;
+                i32 elevation = 0;
+
+                if (noise_value < water_threshold)
+                {
+                    tile_type = TileType::Water;
+                    elevation = 0;
+                }
+                else if (noise_value >= mountain_threshold)
+                {
+                    tile_type = TileType::Grass;
+                    elevation = 0;
+
+                    f32 rand = dist(rng);
+                    if (rand < 0.33f)
+                        decoration = DecorationType::Mountain;
+                    else if (rand < 0.66f)
+                        decoration = DecorationType::MountainGrass;
+                    else
+                        decoration = DecorationType::MountainGrassTree;
+                }
+                else if (noise_value >= forest_threshold)
+                {
+                    tile_type = TileType::Grass;
+                    elevation = 0;
+
+                    f32 rand = dist(rng);
+                    if (rand < 0.33f)
+                        decoration = DecorationType::TreeSmall;
+                    else if (rand < 0.66f)
+                        decoration = DecorationType::TreeMedium;
+                    else
+                        decoration = DecorationType::TreeLarge;
+                }
+                else
+                {
+                    tile_type = TileType::Grass;
+                    elevation = 0;
+                }
+
+                AddTile(coord, tile_type, elevation);
+
+                if (decoration != DecorationType::None)
+                {
+                    Tile* tile = GetTile(coord);
+                    if (tile)
+                    {
+                        tile->SetDecoration(decoration);
+                    }
+                }
+            }
+        }
+
+        RF_CORE_INFO("Generated noise-based map with radius {} ({} tiles)", radius, mTiles.size());
     }
 
     void Map::AddTile(const Coordinate& coord, TileType type, i32 elevation)
@@ -170,6 +266,16 @@ namespace RealmFortress
             {
                 model->Draw(shader, tile.GetTransform());
             }
+
+            if (tile.GetDecoration() != DecorationType::None)
+            {
+                auto decoration_model = tile.GetDecorationModel();
+                if (decoration_model)
+                {
+                    glm::mat4 transform = tile.GetTransform();
+                    decoration_model->Draw(shader, transform);
+                }
+            }
         }
     }
 
@@ -197,6 +303,15 @@ namespace RealmFortress
             if (model)
             {
                 model->Draw(base_shader, tile.GetTransform());
+            }
+
+            if (tile.GetDecoration() != DecorationType::None)
+            {
+                auto decoration_model = tile.GetDecorationModel();
+                if (decoration_model)
+                {
+                    decoration_model->Draw(base_shader, tile.GetTransform());
+                }
             }
         }
 

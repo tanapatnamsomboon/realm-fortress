@@ -24,6 +24,7 @@ namespace RealmFortress
         void GenerateFlat(i32 radius, TileType default_type = TileType::Grass);
         void GenerateRectangle(i32 width, i32 height, TileType default_type = TileType::Grass);
         void GenerateHexagon(i32 radius, TileType default_type = TileType::Grass);
+        void GenerateWithNoise(i32 radius, u32 seed = 0);
 
         void AddTile(const Coordinate& coord, TileType type, i32 elevation = 0);
         void RemoveTile(const Coordinate& coord);

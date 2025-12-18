@@ -23,42 +23,36 @@ namespace RealmFortress
     void CameraController::OnUpdate(Timestep ts)
     {
         glm::vec3 forward = mCamera.GetForward();
+        forward.y = 0;
+        forward = glm::normalize(forward);
+
         glm::vec3 right = mCamera.GetRight();
+        right.y = 0;
+        right = glm::normalize(right);
 
-        // forward/backward
-        if (Input::IsKeyPressed(Key::W))
-            mCameraPosition += forward * mCameraTranslationSpeed * static_cast<float>(ts);
-        if (Input::IsKeyPressed(Key::S))
-            mCameraPosition -= forward * mCameraTranslationSpeed * static_cast<float>(ts);
+        f32 speed = mCameraTranslationSpeed * static_cast<f32>(ts);
 
-        // left/right
-        if (Input::IsKeyPressed(Key::A))
-            mCameraPosition -= right * mCameraTranslationSpeed * static_cast<float>(ts);
-        if (Input::IsKeyPressed(Key::D))
-            mCameraPosition += right * mCameraTranslationSpeed * static_cast<float>(ts);
+        mZoomLevel += (mTargetZoomLevel - mZoomLevel) * 8.0f * ts;
 
-        // up/down
-        if (Input::IsKeyPressed(Key::Q))
-            mCameraPosition.y += mCameraTranslationSpeed * static_cast<float>(ts);
-        if (Input::IsKeyPressed(Key::E))
-            mCameraPosition.y -= mCameraTranslationSpeed * static_cast<float>(ts);
+        speed *= mZoomLevel;
 
-        // camera rotation with mouse (right-click)
-        if (Input::IsMouseButtonPressed(Mouse::ButtonRight))
+        if (Input::IsKeyPressed(Key::W)) mCameraPosition += forward * speed;
+        if (Input::IsKeyPressed(Key::S)) mCameraPosition -= forward * speed;
+        if (Input::IsKeyPressed(Key::A)) mCameraPosition -= right * speed;
+        if (Input::IsKeyPressed(Key::D)) mCameraPosition += right * speed;
+
+        if (Input::IsMouseButtonPressed(Mouse::ButtonMiddle))
         {
-            glm::vec2 mousePos = Input::GetMousePosition();
-            glm::vec2 delta = mousePos - mLastMousePosition;
+            glm::vec2 mouse_pos = Input::GetMousePosition();
+            glm::vec2 delta = mouse_pos - mLastMousePosition;
 
-            mCameraRotation.y += delta.x * mCameraRotationSpeed * static_cast<float>(ts);
-            mCameraRotation.x -= delta.y * mCameraRotationSpeed * static_cast<float>(ts);
-
-            if (mCameraRotation.x > 89.0f)
-                mCameraRotation.x = 89.0f;
-            if (mCameraRotation.x < -89.0f)
-                mCameraRotation.x = -89.0f;
+            mYaw -= delta.x * mCameraRotationSpeed * static_cast<float>(ts);
         }
-
         mLastMousePosition = Input::GetMousePosition();
+
+        mCameraRotation = glm::vec3(-60.0f, mYaw, 0.0f);
+
+        mCameraPosition.y = mZoomLevel * 10.0f;
 
         mCamera.SetPosition(mCameraPosition);
         mCamera.SetRotation(mCameraRotation);
@@ -78,8 +72,8 @@ namespace RealmFortress
 
     bool CameraController::OnMouseScrolled(MouseScrolledEvent& event)
     {
-        mCameraTranslationSpeed += event.GetYOffset() * 0.5f;
-        mCameraTranslationSpeed = std::max(mCameraTranslationSpeed, 0.25f);
+        mTargetZoomLevel -= event.GetYOffset() * 0.25f;
+        mTargetZoomLevel = std::clamp(mTargetZoomLevel, 0.5f, 5.0f);
         return false;
     }
 } // namespace RealmFortress
