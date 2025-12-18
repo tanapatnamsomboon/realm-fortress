@@ -10,52 +10,60 @@
 #include "core/key_codes.h"
 #include "core/mouse_codes.h"
 #include "events/mouse_event.h"
+#include "events/application_event.h"
+#include <glm/gtc/matrix_transform.hpp>
+#include <algorithm>
+
+#ifndef M_PI
+#   define M_PI 3.14159265358979323846f
+#endif
 
 namespace RealmFortress
 {
-    CameraController::CameraController(float aspectRatio)
-        : mAspectRatio(aspectRatio), mCamera(mFOV, aspectRatio, mNearClip, mFarClip)
+    CameraController::CameraController(f32 aspect_ratio)
+        : mAspectRatio(aspect_ratio), mCamera(mFOV, aspect_ratio, 0.1f, 1000.0f)
     {
-        mCamera.SetPosition(mCameraPosition);
-        mCamera.SetRotation(mCameraRotation);
+        UpdateCameraView();
     }
 
     void CameraController::OnUpdate(Timestep ts)
     {
-        glm::vec3 forward = mCamera.GetForward();
-        forward.y = 0;
-        forward = glm::normalize(forward);
+        mDistance += (mTargetDistance - mDistance) * (1.0f - std::exp(-mZoomSmoothness * ts));
 
-        glm::vec3 right = mCamera.GetRight();
-        right.y = 0;
-        right = glm::normalize(right);
+        if (Input::IsKeyPressed(Key::Q))
+            mYaw += mRotationSpeed * ts;
+        if (Input::IsKeyPressed(Key::E))
+            mYaw -= mRotationSpeed * ts;
 
-        f32 speed = mCameraTranslationSpeed * static_cast<f32>(ts);
-
-        mZoomLevel += (mTargetZoomLevel - mZoomLevel) * 8.0f * ts;
-
-        speed *= mZoomLevel;
-
-        if (Input::IsKeyPressed(Key::W)) mCameraPosition += forward * speed;
-        if (Input::IsKeyPressed(Key::S)) mCameraPosition -= forward * speed;
-        if (Input::IsKeyPressed(Key::A)) mCameraPosition -= right * speed;
-        if (Input::IsKeyPressed(Key::D)) mCameraPosition += right * speed;
-
-        if (Input::IsMouseButtonPressed(Mouse::ButtonMiddle))
+        if (Input::IsMouseButtonPressed(Mouse::ButtonRight))
         {
             glm::vec2 mouse_pos = Input::GetMousePosition();
             glm::vec2 delta = mouse_pos - mLastMousePosition;
 
-            mYaw -= delta.x * mCameraRotationSpeed * static_cast<float>(ts);
+            mYaw -= delta.x * 0.3f;
+            mPitch += delta.y * 0.3f;
+            mPitch = std::clamp(mPitch, MIN_PITCH, MAX_PITCH);
         }
         mLastMousePosition = Input::GetMousePosition();
 
-        mCameraRotation = glm::vec3(-60.0f, mYaw, 0.0f);
+        f32 yaw_rad = glm::radians(mYaw);
 
-        mCameraPosition.y = mZoomLevel * 10.0f;
+        glm::vec3 forward_dir = glm::normalize(glm::vec3(
+            -sin(yaw_rad),
+            0.0f,
+            -cos(yaw_rad)
+        ));
 
-        mCamera.SetPosition(mCameraPosition);
-        mCamera.SetRotation(mCameraRotation);
+        glm::vec3 right_dir = glm::cross(forward_dir, glm::vec3(0.0f, 1.0f, 0.0f));
+
+        f32 speed = mMoveSpeed * (mDistance / 10.0f) * ts;
+
+        if (Input::IsKeyPressed(Key::W)) mFocalPoint += forward_dir * speed;
+        if (Input::IsKeyPressed(Key::S)) mFocalPoint -= forward_dir * speed;
+        if (Input::IsKeyPressed(Key::A)) mFocalPoint -= right_dir * speed;
+        if (Input::IsKeyPressed(Key::D)) mFocalPoint += right_dir * speed;
+
+        UpdateCameraView();
     }
 
     void CameraController::OnEvent(Event& event)
@@ -64,16 +72,42 @@ namespace RealmFortress
         dispatcher.Dispatch<MouseScrolledEvent>(RF_BIND_EVENT_FN(CameraController::OnMouseScrolled));
     }
 
-    void CameraController::SetAspectRatio(float aspectRatio)
+    void CameraController::SetAspectRatio(f32 aspect_ratio)
     {
-        mAspectRatio = aspectRatio;
-        mCamera.SetProjection(mFOV, mAspectRatio, mNearClip, mFarClip);
+        mAspectRatio = aspect_ratio;
+        mCamera.SetProjection(mFOV, mAspectRatio, 0.1f, 1000.0f);
     }
 
     bool CameraController::OnMouseScrolled(MouseScrolledEvent& event)
     {
-        mTargetZoomLevel -= event.GetYOffset() * 0.25f;
-        mTargetZoomLevel = std::clamp(mTargetZoomLevel, 0.5f, 5.0f);
+        mTargetDistance -= event.GetYOffset() * mZoomSpeed;
+        mTargetDistance = std::clamp(mTargetDistance, MIN_DISTANCE, MAX_DISTANCE);
         return false;
+    }
+
+    bool CameraController::OnWindowResize(WindowResizeEvent& event)
+    {
+        return false;
+    }
+
+    void CameraController::UpdateCameraView()
+    {
+        f32 yaw_rad = glm::radians(mYaw);
+        f32 pitch_rad = glm::radians(mPitch);
+
+        f32 h_dist = mDistance * cos(pitch_rad);
+        f32 v_dist = mDistance * sin(pitch_rad);
+
+        f32 offset_x = h_dist * sin(yaw_rad);
+        f32 offset_z = h_dist * cos(yaw_rad);
+
+        glm::vec3 camera_pos;
+        camera_pos.x = mFocalPoint.x + offset_x;
+        camera_pos.y = mFocalPoint.y + v_dist;
+        camera_pos.z = mFocalPoint.z + offset_z;
+
+        mCamera.SetPosition(camera_pos);
+
+        mCamera.SetRotation(glm::vec3(-mPitch, mYaw, 0.0f));
     }
 } // namespace RealmFortress

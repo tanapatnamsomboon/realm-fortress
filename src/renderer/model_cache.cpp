@@ -15,7 +15,7 @@ namespace RealmFortress
     {
         if (sModels.contains(path))
         {
-            RF_CORE_TRACE("Model cache hit: {}", path);
+            // RF_CORE_TRACE("Model cache hit: {}", path);
             return sModels[path];
         }
 
@@ -23,7 +23,7 @@ namespace RealmFortress
         {
             auto model = CreateRef<Model>(path);
             sModels[path] = model;
-            RF_CORE_INFO("Model loaded and cached: {}", path);
+            // RF_CORE_INFO("Model loaded and cached: {}", path);
             return model;
         }
         catch (const std::exception& e)

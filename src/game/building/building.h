@@ -10,13 +10,14 @@
 #include "core/timestep.h"
 #include "game/resource/resource.h"
 #include "game/system/coordinate.h"
-#include "game/system/map.h"
+#include "../map/map.h"
 #include "renderer/model.h"
 
 namespace RealmFortress
 {
     enum class BuildingType
     {
+        Townhall,
         LumberMill,
         Mine,
         Farm,
@@ -47,6 +48,14 @@ namespace RealmFortress
     inline const BuildingDefinition& GetBuildingDefinition(BuildingType type)
     {
         static const BuildingDefinition definitions[] = {
+            {
+                "Town Hall",
+                "The heart of your settlement. Increases storage capacity.",
+                BuildingCategory::Utility,
+                { { ResourceType::Lumber, 50 }, { ResourceType::Stone, 50 } },
+                10.0f,
+                "assets/objects/buildings/blue/building_townhall_blue.gltf"
+            },
             {
                 "Lumber Mill",
                 "Produces lumber from nearby trees",
@@ -94,8 +103,10 @@ namespace RealmFortress
         virtual ~Building() = default;
 
         virtual void OnUpdate(Timestep ts) = 0;
-        virtual void OnPlaced() = 0;
-        virtual void OnDestroyed() {};
+        virtual void OnInspected() = 0;
+        virtual void OnPlaced(const Map& map) = 0;
+        virtual void OnDestroyed(const Map& map) = 0;
+        virtual void OnMapChanged(const Map& map) = 0;
 
         virtual bool CanPlace(const Coordinate& coord, const Map& map) const = 0;
 

@@ -39,6 +39,7 @@ namespace RealmFortress
         glm::vec3 ToWorldPosition() const noexcept;
         glm::vec3 ToWorldPosition(i32 elevation) const noexcept;
         glm::vec3 ToWorldPosition(f32 height) const noexcept;
+        static Coordinate FromWorldPosition(const glm::vec3& world_position) noexcept;
 
         i32 DistanceTo(const Coordinate& other) const noexcept;
 

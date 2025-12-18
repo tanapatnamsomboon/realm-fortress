@@ -49,6 +49,36 @@ namespace RealmFortress
         return pos;
     }
 
+    Coordinate Coordinate::FromWorldPosition(const glm::vec3& world_position) noexcept
+    {
+        f32 x = world_position.x / MODEL_SIZE;
+        f32 z = world_position.z / MODEL_SIZE;
+
+        f32 q = (SQRT3 / 3.0f * x - 1.0f / 3.0f * z);
+        f32 r = (                   2.0f / 3.0f * z);
+
+        f32 s = -q - r;
+
+        i32 round_q = static_cast<i32>(std::round(q));
+        i32 round_r = static_cast<i32>(std::round(r));
+        i32 round_s = static_cast<i32>(std::round(s));
+
+        f32 diff_q = std::abs(round_q - q);
+        f32 diff_r = std::abs(round_r - r);
+        f32 diff_s = std::abs(round_s - s);
+
+        if (diff_q > diff_r && diff_q > diff_s)
+        {
+            round_q = -round_r - round_s;
+        }
+        else if (diff_r > diff_s)
+        {
+            round_r = -round_q - round_s;
+        }
+
+        return Coordinate(round_q, round_r);
+    }
+
     i32 Coordinate::DistanceTo(const Coordinate& other) const noexcept
     {
         i32 dq = std::abs(Q - other.Q);

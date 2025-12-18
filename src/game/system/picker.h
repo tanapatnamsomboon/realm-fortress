@@ -50,7 +50,5 @@ namespace RealmFortress
             const glm::vec3& ray_direction,
             f32 plane_y
         ) const;
-
-        Coordinate WorldToHex(const glm::vec3& world_position) const;
     };
 } // namespace RealmFortress

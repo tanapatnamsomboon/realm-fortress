@@ -12,6 +12,7 @@ namespace RealmFortress
 {
     Renderer::SceneData Renderer::sSceneData;
     Renderer::Statistics Renderer::sStats;
+    u32 Renderer::sInstanceVBO = 0;
 
     void Renderer::Init()
     {
@@ -46,6 +47,8 @@ namespace RealmFortress
         glFrontFace(GL_CCW);
 
         glEnable(GL_LINE_SMOOTH);
+
+        glGenBuffers(1, &sInstanceVBO);
     }
 
     void Renderer::Shutdown()
@@ -85,6 +88,44 @@ namespace RealmFortress
         shader->SetMat4("uModel", transform);
 
         DrawIndexed(vertex_array);
+    }
+
+    void Renderer::DrawInstancedMesh(
+        const Ref<Shader>&            shader,
+        const Ref<VertexArray>&       vertex_array,
+        const std::vector<glm::mat4>& transforms
+    )
+    {
+        if (transforms.empty()) return;
+
+        shader->Bind();
+        shader->SetMat4("uViewProjection", sSceneData.ViewProjectionMatrix);
+
+        vertex_array->Bind();
+
+        glBindBuffer(GL_ARRAY_BUFFER, sInstanceVBO);
+        glBufferData(GL_ARRAY_BUFFER, transforms.size() * sizeof(glm::mat4), transforms.data(), GL_DYNAMIC_DRAW);
+
+        for (int i = 0; i < 4; i++)
+        {
+            glEnableVertexAttribArray(3 + i);
+            glVertexAttribPointer(3 + i, 4, GL_FLOAT, GL_FALSE, sizeof(glm::mat4), (const void*)(sizeof(float) * i * 4));
+            glVertexAttribDivisor(3 + i, 1); // บอกว่าเป็นข้อมูลต่อ 1 Instance ไม่ใช่ต่อ Vertex
+        }
+
+        u32 count = vertex_array->GetIndexBuffer()->GetCount();
+        glDrawElementsInstanced(GL_TRIANGLES, count, GL_UNSIGNED_INT, nullptr, (GLsizei)transforms.size());
+
+        for (int i = 0; i < 4; i++)
+        {
+            glVertexAttribDivisor(3 + i, 0);
+            glDisableVertexAttribArray(3 + i);
+        }
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+        sStats.DrawCalls++;
+        sStats.IndexCount += count * static_cast<u32>(transforms.size());
+        sStats.TriangleCount += (count / 3) * static_cast<u32>(transforms.size());
     }
 
     void Renderer::DrawIndexed(const Ref<VertexArray>& vertex_array, u32 index_count)

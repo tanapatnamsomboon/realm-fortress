@@ -34,9 +34,17 @@ namespace RealmFortress
         static void BeginScene(const Camera& camera);
         static void EndScene();
 
-        static void DrawMesh(const Ref<Shader>&      shader,
-                             const Ref<VertexArray>& vertex_array,
-                             const glm::mat4&        transform = glm::mat4(1.0f));
+        static void DrawMesh(
+            const Ref<Shader>&      shader,
+            const Ref<VertexArray>& vertex_array,
+            const glm::mat4&        transform = glm::mat4(1.0f)
+        );
+
+        static void DrawInstancedMesh(
+            const Ref<Shader>&            shader,
+            const Ref<VertexArray>&       vertex_array,
+            const std::vector<glm::mat4>& transforms
+        );
 
         static void DrawIndexed(const Ref<VertexArray>& vertex_array,
                                 u32                     index_count = 0);
@@ -86,5 +94,7 @@ namespace RealmFortress
 
         static SceneData sSceneData;
         static Statistics sStats;
+
+        static u32 sInstanceVBO;
     };
 } // namespace RealmFortress

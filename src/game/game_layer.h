@@ -9,15 +9,16 @@
 #include "core/base.h"
 #include "core/layer.h"
 #include "renderer/shader.h"
+#include "renderer/vertex_array.h"
 #include "events/event.h"
 #include "events/mouse_event.h"
 #include "events/key_event.h"
 #include "game/system/camera_controller.h"
-#include "game/system/map.h"
 #include "game/system/picker.h"
 #include "game/system/selection.h"
 #include "game/resource/warehouse.h"
 #include "game/building/building_manager.h"
+#include "map/map.h"
 
 struct ImVec2;
 
@@ -31,10 +32,10 @@ namespace RealmFortress
 
     enum UIPanelFlag : u16
     {
-        UIPanelNone     = 0,
-        UIPanelBuilding = BIT(0),
-        UIPanelEconomy  = BIT(1),
-        UIPanelInspect  = BIT(2),
+        UIPanelNone          = 0,
+        UIPanelBuilding      = BIT(0),
+        UIPanelEconomy       = BIT(1),
+        UIPanelInspect       = BIT(2),
         UIPanelBuildConfirm  = BIT(3),
     };
 
@@ -69,22 +70,22 @@ namespace RealmFortress
         void ExitBuildMode();
         void PlaceBuildingAtSelection();
         void DrawGhostBuilding();
-        std::unordered_set<Coordinate> GetBuildableTiles() const;
 
         // UI
         void SetupTheme();
 
         void DrawTimeHUD();
         void DrawActionBar(ImVec2* out_pos, ImVec2* out_size);
-
         void DrawBuildingPanel(ImVec2 action_bar_pos, ImVec2 action_bar_size, ImVec2* out_pos, ImVec2* out_size);
         void DrawBuildConfirmPanel(ImVec2 building_panel_pos, ImVec2 building_panel_size);
         void DrawEconomyPanel();
+        void DrawInspectPanel();
 
     private:
         ShaderLibrary mShaderLibrary;
-        Ref<Shader> mShader;
-        Ref<Shader> mHighlightShader;
+        Ref<Shader> mBasicShader;
+        Ref<Shader> mInstanceShader;
+        Ref<Shader> mGhostBuildingShader;
 
         Ref<CameraController> mCameraController;
 
@@ -104,5 +105,7 @@ namespace RealmFortress
         GameMode mGameMode{ GameMode::Normal };
         BuildingType mSelectedBuildingType{ BuildingType::Mine };
         Building* mInspectedBuilding{ nullptr };
+
+        Ref<VertexArray> mSelectionRingVA;
     };
 }

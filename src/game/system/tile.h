@@ -41,7 +41,28 @@ namespace RealmFortress
         case DecorationType::MountainGrass:
             return "assets/objects/decoration/nature/mountain_A_grass.gltf";
         case DecorationType::MountainGrassTree:
-            return "assets/objects/decoration/nature/mountain_A_grass_tree.gltf";
+            return "assets/objects/decoration/nature/mountain_A_grass_trees.gltf";
+        default:
+            return nullptr;
+        }
+    }
+
+    inline const char* DecorationTypeToString(DecorationType type)
+    {
+        switch (type)
+        {
+        case DecorationType::TreeSmall:
+            return "Tree Small";
+        case DecorationType::TreeMedium:
+            return "Tree Medium";
+        case DecorationType::TreeLarge:
+            return "Tree Large";
+        case DecorationType::Mountain:
+            return "Mountain";
+        case DecorationType::MountainGrass:
+            return "Mountain Grass";
+        case DecorationType::MountainGrassTree:
+            return "Mountain Grass Tree";
         default:
             return nullptr;
         }
@@ -52,11 +73,6 @@ namespace RealmFortress
         None = 0,
         Grass,
         Water,
-        Coast,
-        Road,
-        River,
-        Hill,
-        Mountain,
 
         Count
     };
@@ -94,6 +110,7 @@ namespace RealmFortress
 
         DecorationType GetDecoration() const { return mDecoration; }
         Ref<Model> GetDecorationModel() const { return mDecorationModel; }
+        glm::mat4 GetDecorationTransform() const;
 
     private:
         Coordinate mCoordinate{};

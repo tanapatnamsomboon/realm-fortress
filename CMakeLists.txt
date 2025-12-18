@@ -97,8 +97,6 @@ set(REALM_FORTRESS_SOURCES
         src/game/system/constants.h
         src/game/system/coordinate.cpp
         src/game/system/coordinate.h
-        src/game/system/map.cpp
-        src/game/system/map.h
         src/game/system/picker.cpp
         src/game/system/picker.h
         src/game/system/selection.cpp
@@ -114,12 +112,24 @@ set(REALM_FORTRESS_SOURCES
         src/game/building/building_manager.h
         src/game/building/mine.cpp
         src/game/building/mine.h
+        src/game/building/lumbermill.cpp
+        src/game/building/lumbermill.h
+        src/game/building/farm.cpp
+        src/game/building/farm.h
+        src/game/building/townhall.cpp
+        src/game/building/townhall.h
 
         # Game - Resource
         src/game/resource/resource.cpp
         src/game/resource/resource.h
         src/game/resource/warehouse.cpp
         src/game/resource/warehouse.h
+
+        # Game - Map
+        src/game/map/map.cpp
+        src/game/map/map.h
+        src/game/map/chunk.cpp
+        src/game/map/chunk.h
 
 )
 

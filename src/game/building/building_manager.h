@@ -26,7 +26,7 @@ namespace RealmFortress
 
         bool CanPlaceBuilding(BuildingType type, const Coordinate& coord, const Map& map) const;
         bool PlaceBuilding(BuildingType type, const Coordinate& coord, const Map& map);
-        bool RemoveBuilding(const Coordinate& coord);
+        bool RemoveBuilding(const Coordinate& coord, const Map& map);
 
         Building* GetBuildingAt(const Coordinate& coord) const;
         const std::vector<Scope<Building>>& GetAllBuildings() const { return mBuildings; }

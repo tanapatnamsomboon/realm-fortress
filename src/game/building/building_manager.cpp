@@ -4,10 +4,13 @@
  * @date 12/16/2025
  */
 
-#include "core/base.h"
+#include "core/pch.h"
 #include "building_manager.h"
 #include "renderer/model_cache.h"
+#include "game/building/townhall.h"
 #include "game/building/mine.h"
+#include "game/building/lumbermill.h"
+#include "game/building/farm.h"
 #include "game/resource/warehouse.h"
 
 namespace RealmFortress
@@ -25,14 +28,26 @@ namespace RealmFortress
 
     bool BuildingManager::CanPlaceBuilding(BuildingType type, const Coordinate& coord, const Map& map) const
     {
-        if (!map.HasTile(coord))
-        {
-            return false;
-        }
+        if (!map.HasTile(coord)) return false;
+        if (GetBuildingAt(coord) != nullptr) return false;
 
-        if (GetBuildingAt(coord) != nullptr)
+        i32 townhall_count = GetBuildingCount(BuildingType::Townhall);
+
+        if (type == BuildingType::Townhall)
         {
-            return false;
+            if (townhall_count > 0)
+            {
+                RF_CORE_WARN("Cannot build more than one Town Hall!");
+                return false;
+            }
+        }
+        else
+        {
+            if (townhall_count == 0)
+            {
+                RF_CORE_WARN("Must build Town Hall first!");
+                return false;
+            }
         }
 
         const auto& definition = GetBuildingDefinition(type);
@@ -81,7 +96,7 @@ namespace RealmFortress
             RF_CORE_WARN("Failed to load model for {}: {}", definition.Name, definition.ModelPath);
         }
 
-        building->OnPlaced();
+        building->OnPlaced(map);
 
         mCoordinateMap[coord] = mBuildings.size();
         mBuildings.push_back(std::move(building));
@@ -89,7 +104,7 @@ namespace RealmFortress
         return true;
     }
 
-    bool BuildingManager::RemoveBuilding(const Coordinate& coord)
+    bool BuildingManager::RemoveBuilding(const Coordinate& coord, const Map& map)
     {
         auto it = mCoordinateMap.find(coord);
 
@@ -106,7 +121,7 @@ namespace RealmFortress
 
         if (mBuildings[index])
         {
-            mBuildings[index]->OnDestroyed();
+            mBuildings[index]->OnDestroyed(map);
         }
 
         if (index != mBuildings.size() - 1)
@@ -200,8 +215,14 @@ namespace RealmFortress
     {
         switch (type)
         {
+        case BuildingType::Townhall:
+            return CreateScope<Townhall>(coord);
         case BuildingType::Mine:
             return CreateScope<Mine>(coord);
+        case BuildingType::LumberMill:
+            return CreateScope<Lumbermill>(coord);
+        case BuildingType::Farm:
+            return CreateScope<Farm>(coord);
 
         default:
             return nullptr;
