@@ -32,7 +32,7 @@ built from scratch using OpenGL and a custom engine architecture.
 ![economy](screenshots/economy.png)
 
 ### Gameplay Demo
-![GamePlay](video/gameplay.mp4)
+[gameplay](https://youtu.be/dpIsZu5e81Q)
 
 ## How to Build & Run
 1. **Clone repository:**
