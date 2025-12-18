@@ -19,6 +19,8 @@
 #include "game/resource/warehouse.h"
 #include "game/building/building_manager.h"
 
+struct ImVec2;
+
 namespace RealmFortress
 {
     enum class GameMode
@@ -41,7 +43,7 @@ namespace RealmFortress
 #   define UI_PANEL_OPEN_ONLY(flags, panel) ((flags) &= (panel))
 #   define UI_PANEL_CLOSE(flags, panel)     ((flags) &= ~(panel))
 #   define UI_PANEL_TOGGLE(flags, panel)    ((flags) ^= (panel))
-#   define UI_PANEL_CLOSE_ALL(flags)        ((flags) & 0)
+#   define UI_PANEL_CLOSE_ALL(flags)        ((flags) = 0)
 
     class GameLayer final : public Layer
     {
@@ -72,14 +74,11 @@ namespace RealmFortress
         // UI
         void SetupTheme();
 
-        void DrawLeft();
-        void DrawCenter();
-
         void DrawTimeHUD();
-        void DrawActionBar();
+        void DrawActionBar(ImVec2* out_pos, ImVec2* out_size);
 
-        void DrawBuildingPanel();
-        void DrawBuildConfirmPanel();
+        void DrawBuildingPanel(ImVec2 action_bar_pos, ImVec2 action_bar_size, ImVec2* out_pos, ImVec2* out_size);
+        void DrawBuildConfirmPanel(ImVec2 building_panel_pos, ImVec2 building_panel_size);
         void DrawEconomyPanel();
 
     private:
@@ -95,17 +94,6 @@ namespace RealmFortress
         Selection mSelection;
         f32 mTime{ 0.0f };
 
-        struct UIData
-        {
-            f32 ActionBarButtonSize{ 110.0f };
-
-            f32 BuildingPanelHeight{ 300.0f };
-            f32 BuildingPanelThumbnailSize{ 80.0f };
-
-            f32 BuildConfirmPanelWidth{ 300.0f };
-            f32 BuildConfirmPanelHeight{ 220.0f };
-        };
-        UIData mUIData;
         i16 mUIPanelFlags{ 0 };
         std::optional<BuildingType> mSelectedBuildingToConfirm;
 

@@ -18,12 +18,13 @@ namespace RealmFortress
         static void Init(u32 thumbnail_size = 128);
         static void Shutdown();
 
-        static Ref<Framebuffer> GenerateThumbnail(const Ref<Model>& model);
-        static u32 GetThumbnail(const std::string& model_path);
+        static u32 GetThumbnail(const std::string& model_path, f32 scale = 1.0f);
 
         static void ClearCache();
 
     private:
+        static Ref<Framebuffer> GenerateThumbnail(const Ref<Model>& model, f32 scale);
+
         static void RenderModelToFramebuffer(const Ref<Model>& model);
 
     private:

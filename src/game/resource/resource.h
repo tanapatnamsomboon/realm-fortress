@@ -44,6 +44,17 @@ namespace RealmFortress
         }
     }
 
+    inline const char* ResourceTypeToThumbnailModelPath(ResourceType type)
+    {
+        switch (type)
+        {
+        case ResourceType::Lumber: return "assets/objects/decoration/props/resource_lumber.gltf";
+        case ResourceType::Stone:  return "assets/objects/decoration/props/resource_stone.gltf";
+        case ResourceType::Wheat:  return "assets/objects/decoration/props/resource_stone.gltf";
+        default:                   return "";
+        }
+    }
+
     class ResourceStorage
     {
     public:

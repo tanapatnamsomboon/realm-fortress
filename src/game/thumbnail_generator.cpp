@@ -26,7 +26,7 @@ namespace RealmFortress
         sThumbnailCache.clear();
     }
 
-    Ref<Framebuffer> ThumbnailGenerator::GenerateThumbnail(const Ref<Model>& model)
+    Ref<Framebuffer> ThumbnailGenerator::GenerateThumbnail(const Ref<Model>& model, f32 scale)
     {
         if (!model || !sThumbnailShader)
             return nullptr;
@@ -54,7 +54,11 @@ namespace RealmFortress
         sThumbnailShader->Bind();
         sThumbnailShader->SetInt("uTexture", 0);
         sThumbnailShader->SetInt("uHasTexture", 1);
-        model->Draw(sThumbnailShader);
+
+        glm::mat4 transform = glm::mat4(1.0f);
+        transform = glm::scale(transform, glm::vec3(scale));
+        model->Draw(sThumbnailShader, transform);
+
         sThumbnailShader->Unbind();
 
         framebuffer->Unbind();
@@ -65,7 +69,7 @@ namespace RealmFortress
         return framebuffer;
     }
 
-    u32 ThumbnailGenerator::GetThumbnail(const std::string& model_path)
+    u32 ThumbnailGenerator::GetThumbnail(const std::string& model_path, f32 scale)
     {
         if (sThumbnailCache.contains(model_path))
         {
@@ -80,7 +84,7 @@ namespace RealmFortress
 
         if (model)
         {
-            Ref<Framebuffer> fbo = GenerateThumbnail(model);
+            Ref<Framebuffer> fbo = GenerateThumbnail(model, scale);
             if (fbo)
             {
                 sThumbnailCache[model_path] = fbo;
