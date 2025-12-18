@@ -27,6 +27,17 @@ namespace RealmFortress
         Renderer::DrawMesh(shader, mVertexArray, transform);
     }
 
+    void Mesh::DrawInstanced(const Ref<Shader>& shader, const std::vector<glm::mat4>& transforms)
+    {
+        for (u32 i = 0; i < mTextures.size(); i++)
+        {
+            mTextures[i]->Bind(i);
+            shader->SetInt("uTexture", i);
+        }
+
+        Renderer::DrawInstancedMesh(shader, mVertexArray, transforms);
+    }
+
     void Mesh::SetupMesh()
     {
         mVertexArray = VertexArray::Create();
