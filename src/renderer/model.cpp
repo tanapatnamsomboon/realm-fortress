@@ -26,6 +26,14 @@ namespace RealmFortress
         }
     }
 
+    void Model::DrawInstanced(const Ref<Shader>& shader, const std::vector<glm::mat4>& transforms)
+    {
+        for (auto& mesh : mMeshes)
+        {
+            mesh.DrawInstanced(shader, transforms);
+        }
+    }
+
     void Model::LoadModel(const std::string& path)
     {
         Assimp::Importer importer;

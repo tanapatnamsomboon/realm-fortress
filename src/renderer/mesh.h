@@ -28,6 +28,7 @@ namespace RealmFortress
         Mesh(const std::vector<Vertex>& vertices, const std::vector<u32>& indices, const std::vector<Ref<Texture2D>>& textures);
 
         void Draw(const Ref<Shader>& shader, const glm::mat4& transform = glm::mat4(1.0f));
+        void DrawInstanced(const Ref<Shader>& shader, const std::vector<glm::mat4>& transforms);
 
         const std::vector<Vertex>& GetVertices() const { return mVertices; }
         const std::vector<u32>& GetIndices() const { return mIndices; }
