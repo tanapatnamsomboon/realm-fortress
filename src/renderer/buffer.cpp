@@ -8,7 +8,7 @@
 #include "core/logger.h"
 #include <glad/gl.h>
 
-namespace RF
+namespace RealmFortress
 {
     VertexBuffer::VertexBuffer(u32 size)
     {
@@ -82,4 +82,4 @@ namespace RF
     {
         return CreateRef<IndexBuffer>(indices, count);
     }
-} // namespace RF
+} // namespace RealmFortress

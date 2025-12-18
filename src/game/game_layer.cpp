@@ -1,440 +1,803 @@
-/**
- * @file game_layer.cpp
- * @brief
- * @date 11/27/2025
- */
+    /**
+     * @file game_layer.cpp
+     * @brief
+     * @date 11/27/2025
+     */
 
-#include "core/pch.h"
-#include "game_layer.h"
-#include "core/application.h"
-#include "core/input.h"
-#include "renderer/renderer.h"
-#include "events/mouse_event.h"
-#include "events/key_event.h"
-#include <imgui.h>
+    #include "core/pch.h"
+    #include "game_layer.h"
+    #include "core/logger.h"
+    #include "core/application.h"
+    #include "core/input.h"
+    #include "renderer/renderer.h"
+    #include "renderer/model_cache.h"
+    #include "game/building/mine.h"
+    #include "game/thumbnail_generator.h"
+    #define IMGUI_DEFINE_MATH_OPERATORS
+    #include <imgui.h>
 
-namespace RF
-{
-    GameLayer::GameLayer()
-        : Layer("GameLayer"), mCameraController(1600.0f / 900.0f), mGhostBuildingValid(false), mTime(0.0f), mPulseIntensity(1.0f)
+    namespace RealmFortress
     {
-    }
-
-    void GameLayer::OnAttach()
-    {
-        RF_INFO("gameLayer attached");
-
-        mShader = Shader::Create("assets/shaders/basic.glsl");
-        mHighlightShader = Shader::Create("assets/shaders/hex_highlight.glsl");
-        mTranslucentShader = Shader::Create("assets/shaders/translucent.glsl");
-
-        mHexMap = CreateScope<HexMap>();
-        mHexMap->Generate(5, 5);
-
-        mBuildingManager = CreateScope<BuildingManager>();
-        mBuildingManager->Initialize();
-
-        mResourceManager = CreateScope<ResourceManager>();
-        mSelectionManager = CreateScope<SelectionManager>();
-
-        try
+        GameLayer::GameLayer()
+            : Layer("GameLayer")
         {
-            mHexHighlightModel = CreateRef<Model>("assets/objects/tiles/base/hex_grass.gltf");
-        }
-        catch (...)
-        {
-            RF_WARN("failed to load hex highlight model");
-        }
-    }
+            mShader = mShaderLibrary.Load("assets/shaders/basic.glsl");
+            mHighlightShader = mShaderLibrary.Load("assets/shaders/highlight.glsl");
 
-    void GameLayer::OnDetach()
-    {
-        RF_INFO("gameLayer detached");
-    }
-
-    void GameLayer::OnUpdate(Timestep ts)
-    {
-        mTime += ts;
-        mPulseIntensity = 0.7f + 0.3f * std::sin(mTime * 3.0f);
-
-        mCameraController.OnUpdate(ts);
-
-        UpdateHoveredHex();
-
-        RenderCommand::SetClearColor({ 0.1f, 0.1f, 0.15f, 1.0f });
-        RenderCommand::Clear();
-
-        Renderer::BeginScene(mCameraController.GetCamera());
-
-        mShader->Bind();
-        mShader->SetFloat3("uLightPos", glm::vec3(10.0f, 20.0f, 10.0f));
-        mShader->SetFloat3("uViewPos", mCameraController.GetCamera().GetPosition());
-        mShader->SetFloat3("uLightColor", glm::vec3(1.0f, 1.0f, 1.0f));
-        mShader->SetFloat3("uTintColor", glm::vec3(1.0f, 1.0f, 1.0f));
-
-        mHexMap->Draw(mShader);
-
-        mBuildingManager->DrawBuildings(mShader);
-
-        if (mHoveredHex.has_value())
-        {
-            DrawHexHighlight(mHoveredHex.value(), glm::vec3(1.0f, 1.0f, 0.5f), 0.05f);
-        }
-
-        if (mSelectionManager->HasSelection())
-        {
-            DrawHexHighlight(mSelectionManager->GetSelectedHex(), glm::vec3(0.2f, 0.8f, 1.0f), 0.1f);
-        }
-
-        if (mSelectionManager->IsInPlacementMode() && mHoveredHex.has_value())
-        {
-            DrawGhostBuilding();
-        }
-
-        Renderer::EndScene();
-    }
-
-    void GameLayer::OnImGuiRender()
-    {
-        RenderResourceDisplay();
-        RenderBuildingMenu();
-        RenderDebugInfo();
-    }
-
-    void GameLayer::OnEvent(Event& event)
-    {
-        EventDispatcher dispatcher(event);
-        dispatcher.Dispatch<MouseButtonPressedEvent>(RF_BIND_EVENT_FN(OnMouseButtonPressed));
-        dispatcher.Dispatch<MouseMovedEvent>(RF_BIND_EVENT_FN(OnMouseMoved));
-        dispatcher.Dispatch<KeyPressedEvent>(RF_BIND_EVENT_FN(OnKeyPressed));
-
-        mCameraController.OnEvent(event);
-    }
-
-    bool GameLayer::OnMouseButtonPressed(MouseButtonPressedEvent& event)
-    {
-        if (event.GetMouseButton() == Mouse::ButtonLeft)
-        {
             auto& window = Application::Get().GetWindow();
-            auto mousePos = Input::GetMousePosition();
+            f32 aspect_ratio = static_cast<f32>(window.GetWidth()) / static_cast<f32>(window.GetHeight());
+            mCameraController = CreateRef<CameraController>(aspect_ratio);
+        }
 
-            auto hexCoord = mSelectionManager->GetHexAtScreenPosition(
-                mousePos.x, mousePos.y,
-                window.GetWidth(), window.GetHeight(),
-                mCameraController.GetCamera(),
-                *mHexMap
-            );
+        void GameLayer::OnAttach()
+        {
+            RF_CORE_INFO("GameLayer attached");
 
-            if (hexCoord.has_value())
+            ThumbnailGenerator::Init(512);
+
+            mCameraController->GetCamera().SetPosition(glm::vec3(0.0f, 15.0f, 15.0f));
+            mCameraController->GetCamera().SetRotation(glm::vec3(-45.0f, 0.0f, 0.0f));
+
+            u32 seed = static_cast<u32>(std::time(nullptr));
+            mMap.GenerateWithNoise(20, seed);
+
+            bool success = Warehouse::Get().Add({
+                { ResourceType::Lumber, 100 },
+                { ResourceType::Stone, 80 },
+                { ResourceType::Wheat, 50 }
+            });
+
+            if (!success)
             {
-                if (mSelectionManager->IsInPlacementMode())
-                {
-                    auto* building = mBuildingManager->PlaceBuilding(
-                        mSelectionManager->GetPlacementType(),
-                        hexCoord.value(),
-                        *mResourceManager
-                    );
+                RF_CORE_WARN("Initial resources exceed warehouse capacity!");
+            }
 
-                    if (building)
-                    {
-                        mSelectionManager->ClearPlacementMode();
-                    }
+            RF_CORE_INFO("Map generated with {} tiles", mMap.GetTileCount());
+            RF_CORE_INFO("Warehouse capacity: {} / {}",
+                         Warehouse::Get().GetUsedSpace(),
+                         Warehouse::Get().GetCapacity());
+
+            SetupTheme();
+        }
+
+        void GameLayer::OnDetach()
+        {
+            RF_CORE_INFO("GameLayer detached");
+            BuildingManager::Get().Clear();
+            ThumbnailGenerator::Shutdown();
+        }
+
+        void GameLayer::OnUpdate(Timestep ts)
+        {
+            mTime += ts;
+
+            Warehouse::Get().OnUpdate(ts);
+            BuildingManager::Get().OnUpdate(ts);
+
+            Renderer::BeginFrame();
+
+            Renderer::SetClearColor(glm::vec4(0.53f, 0.81f, 0.92f, 1.0f));
+            Renderer::Clear();
+
+            mCameraController->OnUpdate(ts);
+
+            UpdateSelection();
+
+            Renderer::BeginScene(mCameraController->GetCamera());
+
+            mShader->Bind();
+            mShader->SetMat4("uViewProjection", Renderer::GetViewProjectionMatrix());
+
+            mHighlightShader->Bind();
+            mHighlightShader->SetMat4("uViewProjection", Renderer::GetViewProjectionMatrix());
+
+            std::unordered_set<Coordinate> highlighted_tiles;
+            glm::vec3 highlight_color(1.0f, 1.0f, 0.0f);
+
+            if (mGameMode == GameMode::Building)
+            {
+                if (mSelection.HasHover())
+                {
+                    auto hovered = mSelection.GetHovered().value();
+                    bool can_place = BuildingManager::Get().CanPlaceBuilding(mSelectedBuildingType, hovered, mMap);
+
+                    highlighted_tiles.insert(hovered);
+                    highlight_color = can_place ? glm::vec3(0.0f, 1.0f, 0.0f) : glm::vec3(1.0f, 0.0f, 0.0f);
+                }
+            }
+            else
+            {
+                if (mSelection.HasHover())
+                {
+                    highlighted_tiles.insert(mSelection.GetHovered().value());
+                    highlight_color = glm::vec3(1.0f, 1.0f, 0.0f);
+                }
+                if (mSelection.HasSelection())
+                {
+                    highlighted_tiles.insert(mSelection.GetSelected().value());
+                    highlight_color = glm::vec3(0.0f, 1.0f, 0.5f);
+                }
+            }
+
+            mMap.Draw(mShader);
+
+            mShader->Bind();
+            for (const auto& building : BuildingManager::Get().GetAllBuildings())
+            {
+                if (building && building->GetModel())
+                {
+                    building->GetModel()->Draw(mShader, building->GetTransform());
+                }
+            }
+
+            if (mInspectedBuilding && mInspectedBuilding->GetModel())
+            {
+                mHighlightShader->Bind();
+                mHighlightShader->SetMat4("uViewProjection", Renderer::GetViewProjectionMatrix());
+                mHighlightShader->SetFloat3("uHighlightColor", glm::vec3(1.0f, 1.0f, 0.0f));
+                mHighlightShader->SetFloat("uPulseTime", mTime);
+                mHighlightShader->SetFloat("uHighlightIntensity", 0.5f);
+
+                glm::mat4 transform = mInspectedBuilding->GetTransform();
+                transform = glm::scale(transform, glm::vec3(1.05f));
+
+                mInspectedBuilding->GetModel()->Draw(mHighlightShader, transform);
+            }
+
+            if (mGameMode == GameMode::Building)
+            {
+                DrawGhostBuilding();
+            }
+
+            Renderer::EndScene();
+            Renderer::EndFrame();
+        }
+
+        void GameLayer::OnImGuiRender()
+        {
+            ImVec2 action_bar_pos, action_bar_size;
+            ImVec2 building_panel_pos, building_panel_size;
+
+            DrawTimeHUD();
+            DrawActionBar(&action_bar_pos, &action_bar_size);
+
+            if (UI_PANEL_IS_OPEN(mUIPanelFlags, UIPanelBuilding))
+            {
+                DrawBuildingPanel(action_bar_pos, action_bar_size, &building_panel_pos, &building_panel_size);
+
+                if (UI_PANEL_IS_OPEN(mUIPanelFlags, UIPanelBuildConfirm))
+                {
+                    DrawBuildConfirmPanel(building_panel_pos, building_panel_size);
+                }
+            }
+
+            if (UI_PANEL_IS_OPEN(mUIPanelFlags, UIPanelEconomy))
+            {
+                DrawEconomyPanel();
+            }
+        }
+
+        void GameLayer::OnEvent(Event& event)
+        {
+            EventDispatcher dispatcher(event);
+            dispatcher.Dispatch<MouseButtonPressedEvent>(RF_BIND_EVENT_FN(OnMouseButtonPressed));
+            dispatcher.Dispatch<MouseMovedEvent>(RF_BIND_EVENT_FN(OnMouseMoved));
+            dispatcher.Dispatch<KeyPressedEvent>(RF_BIND_EVENT_FN(OnKeyPressed));
+
+            mCameraController->OnEvent(event);
+        }
+
+        bool GameLayer::OnMouseButtonPressed(MouseButtonPressedEvent& event)
+        {
+            if (event.GetMouseButton() == Mouse::ButtonLeft)
+            {
+                if (mGameMode == GameMode::Building)
+                {
+                    PlaceBuildingAtSelection();
                 }
                 else
                 {
-                    mSelectionManager->SelectHex(hexCoord.value());
+                    if (mSelection.HasHover())
+                    {
+                        auto coord = mSelection.GetHovered().value();
+
+                        Building* building = BuildingManager::Get().GetBuildingAt(coord);
+                        if (building)
+                        {
+                            mInspectedBuilding = building;
+                            RF_CORE_INFO("Inspecting building: {} at ({}, {})",
+                                        building->GetDefinition().Name,
+                                        coord.Q, coord.R);
+                        }
+                        else
+                        {
+                            mSelection.Select(coord);
+                            mInspectedBuilding = nullptr;
+                            RF_CORE_INFO("Selected tile: ({}, {})", coord.Q, coord.R);
+                        }
+                    }
                 }
-
                 return true;
             }
-        }
 
-        return false;
-    }
-
-    bool GameLayer::OnMouseMoved(MouseMovedEvent& event)
-    {
-        return false;
-    }
-
-    bool GameLayer::OnKeyPressed(KeyPressedEvent& event)
-    {
-        if (event.GetKeyCode() == Key::Escape)
-        {
-            if (mSelectionManager->IsInPlacementMode())
+            if (event.GetMouseButton() == Mouse::ButtonRight)
             {
-                mSelectionManager->ClearPlacementMode();
-                mGhostBuildingModel.reset();
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    void GameLayer::RenderBuildingMenu()
-    {
-        ImGui::SetNextWindowPos(ImVec2(10, 200), ImGuiCond_FirstUseEver);
-        ImGui::Begin("buildings", nullptr, ImGuiWindowFlags_AlwaysAutoResize);
-
-        if (mSelectionManager->IsInPlacementMode())
-        {
-            ImGui::TextColored(ImVec4(1.0f, 1.0f, 0.0f, 1.0f),
-                              "placement mode: %s",
-                              BuildingTypeToString(mSelectionManager->GetPlacementType()));
-            ImGui::Text("click on a hex to place");
-
-            if (mHoveredHex.has_value())
-            {
-                if (mGhostBuildingValid)
+                if (mGameMode == GameMode::Building)
                 {
-                    ImGui::TextColored(ImVec4(0.0f, 1.0f, 0.0f, 1.0f), "✓ valid placement");
+                    ExitBuildMode();
                 }
                 else
                 {
-                    ImGui::TextColored(ImVec4(1.0f, 0.0f, 0.0f, 1.0f), "✗ cannot place here");
+                    mSelection.ClearSelection();
+                    mInspectedBuilding = nullptr;
                 }
+                return true;
             }
 
-            ImGui::Separator();
+            return false;
+        }
 
-            if (ImGui::Button("cancel (ESC)"))
+        bool GameLayer::OnMouseMoved(MouseMovedEvent& event)
+        {
+            return false;
+        }
+
+        bool GameLayer::OnKeyPressed(KeyPressedEvent& event)
+        {
+            if (event.GetKeyCode() == Key::Escape)
             {
-                mSelectionManager->ClearPlacementMode();
-                mGhostBuildingModel.reset();
+                if (mGameMode == GameMode::Building)
+                {
+                    ExitBuildMode();
+                }
+                else
+                {
+                    mSelection.ClearSelection();
+                    mInspectedBuilding = nullptr;
+                }
+                return true;
+            }
+
+            if (event.GetKeyCode() == Key::F11)
+            {
+                Application::Get().GetWindow().ToggleFullscreen();
+                return true;
+            }
+
+            if (event.GetKeyCode() == Key::D1)
+            {
+                EnterBuildMode(BuildingType::LumberMill);
+                return true;
+            }
+            if (event.GetKeyCode() == Key::D2)
+            {
+                EnterBuildMode(BuildingType::Mine);
+                return true;
+            }
+            if (event.GetKeyCode() == Key::D3)
+            {
+                EnterBuildMode(BuildingType::Farm);
+                return true;
+            }
+
+            return false;
+        }
+
+        void GameLayer::UpdateSelection()
+        {
+            glm::vec2 mouse_pos = Input::GetMousePosition();
+
+            auto& window = Application::Get().GetWindow();
+            u32 width = window.GetWidth();
+            u32 height = window.GetHeight();
+
+            auto picked_tile = mPicker.Pick(mouse_pos.x, mouse_pos.y, width, height, mCameraController->GetCamera());
+
+            if (picked_tile.has_value() && mMap.HasTile(picked_tile.value()))
+            {
+                mSelection.SetHovered(picked_tile.value());
+            }
+            else
+            {
+                mSelection.ClearHover();
             }
         }
-        else
+
+        void GameLayer::EnterBuildMode(BuildingType type)
         {
-            ImGui::Text("select a building to place:");
-            ImGui::Separator();
+            mGameMode = GameMode::Building;
+            mSelectedBuildingType = type;
 
-            for (const auto& def : mBuildingManager->GetAllDefinitions())
+            const auto& definition = GetBuildingDefinition(type);
+            RF_CORE_INFO("Entering build mode: {}", definition.Name);
+        }
+
+        void GameLayer::ExitBuildMode()
+        {
+            mGameMode = GameMode::Normal;
+            RF_CORE_INFO("Exiting build mode");
+        }
+
+        void GameLayer::PlaceBuildingAtSelection()
+        {
+            if (!mSelection.HasHover())
+                return;
+
+            auto coord = mSelection.GetHovered().value();
+
+            if (BuildingManager::Get().PlaceBuilding(mSelectedBuildingType, coord, mMap))
             {
-                ImGui::PushID(static_cast<int>(def.Type));
+                const auto& definition = GetBuildingDefinition(mSelectedBuildingType);
+                RF_CORE_INFO("Placed {} at ({}, {})", definition.Name, coord.Q, coord.R);
 
-                bool canAfford = true;
-                for (const auto& cost : def.Cost.Resources)
+                ExitBuildMode();
+            }
+            else
+            {
+                RF_CORE_WARN("Cannot place building at ({}, {})", coord.Q, coord.R);
+            }
+        }
+
+        void GameLayer::DrawGhostBuilding()
+        {
+            if (!mSelection.HasHover())
+                return;
+
+            auto coord = mSelection.GetHovered().value();
+            bool can_place = BuildingManager::Get().CanPlaceBuilding(mSelectedBuildingType, coord, mMap);
+
+            const auto& definition = GetBuildingDefinition(mSelectedBuildingType);
+            auto model = ModelCache::Get(definition.ModelPath);
+
+            if (!model)
+            {
+                model = ModelCache::Load(definition.ModelPath);
+                if (!model)
                 {
-                    if (!mResourceManager->HasResource(cost.Type, cost.Amount))
-                    {
-                        canAfford = false;
-                        break;
-                    }
+                    model = ModelCache::Get("assets/objects/buildings/blue/building_mine_blue.gltf");
                 }
+            }
 
-                if (!canAfford)
+            if (model)
+            {
+                mHighlightShader->Bind();
+                mHighlightShader->SetMat4("uViewProjection", Renderer::GetViewProjectionMatrix());
+
+                glm::vec3 color = can_place ? glm::vec3(0.0f, 1.0f, 0.0f) : glm::vec3(1.0f, 0.0f, 0.0f);
+                mHighlightShader->SetFloat3("uHighlightColor", color);
+                mHighlightShader->SetFloat("uPulseTime", mTime);
+                mHighlightShader->SetFloat("uHighlightIntensity", 0.3f);
+
+                glm::mat4 transform = glm::mat4(1.0f);
+                transform = glm::translate(transform, coord.ToWorldPosition());
+
+                model->Draw(mHighlightShader, transform);
+            }
+        }
+
+        std::unordered_set<Coordinate> GameLayer::GetBuildableTiles() const
+        {
+            std::unordered_set<Coordinate> buildable;
+
+            for (const auto& coord : mMap.GetTiles() | std::views::keys)
+            {
+                if (BuildingManager::Get().CanPlaceBuilding(mSelectedBuildingType, coord, mMap))
                 {
-                    ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.3f, 0.3f, 0.3f, 1.0f));
+                    buildable.insert(coord);
                 }
+            }
 
-                if (ImGui::Button(def.Name.c_str(), ImVec2(150, 0)))
-                {
-                    if (canAfford)
-                    {
-                        mSelectionManager->SetPlacementMode(def.Type);
-                    }
-                }
+            return buildable;
+        }
 
-                if (!canAfford)
+        void GameLayer::SetupTheme()
+        {
+            ImGuiStyle& style = ImGui::GetStyle();
+
+            style.WindowRounding    = 6.0f;
+            style.ChildRounding     = 5.0f;
+            style.FrameRounding     = 3.0f;
+            style.PopupRounding     = 5.0f;
+            style.GrabRounding      = 3.0f;
+            style.TabRounding       = 3.0f;
+
+            style.WindowBorderSize  = 0.0f;
+            style.FrameBorderSize   = 0.0f;
+            style.PopupBorderSize   = 0.0f;
+            style.ImageBorderSize   = 0.0f;
+
+            style.WindowPadding     = ImVec2(15, 15);
+            style.ItemSpacing       = ImVec2(10, 10);
+            style.FramePadding      = ImVec2(5, 5);
+        }
+
+        // UI constant
+        constexpr f32 ActionBar_ButtonSize{ 110.0f };
+
+        constexpr f32 BuildingPanel_Height{ 285.0f };
+        constexpr f32 BuildingPanel_ThumbnailSize{ 80.0f };
+
+        constexpr f32 BuildConfirmPanel_Height{ 250.0f };
+
+        constexpr f32 EconomyPanel_HeightScale{ 0.61f };
+        constexpr f32 EconomyPanel_WidthScale{ 0.32f };
+
+        void GameLayer::DrawTimeHUD()
+        {
+        }
+
+        void GameLayer::DrawActionBar(ImVec2* out_pos, ImVec2* out_size)
+        {
+            ImGuiViewport* viewport = ImGui::GetMainViewport();
+            ImVec2 pos(viewport->Pos.x + viewport->Size.x * 0.5f, viewport->Pos.y + viewport->Size.y);
+            ImGui::SetNextWindowPos(pos, ImGuiCond_Always, ImVec2(0.5f, 1.0f));
+
+            ImGuiWindowFlags flags = ImGuiWindowFlags_NoNav
+                                   | ImGuiWindowFlags_NoTitleBar
+                                   | ImGuiWindowFlags_NoResize
+                                   | ImGuiWindowFlags_NoMove
+                                   | ImGuiWindowFlags_NoSavedSettings
+                                   | ImGuiWindowFlags_NoBackground
+                                   | ImGuiWindowFlags_NoDecoration
+                                   | ImGuiWindowFlags_NoBringToFrontOnFocus;
+
+            ImGui::Begin("ActionBar", nullptr, flags);
+            {
+                *out_pos = ImGui::GetWindowPos();
+                *out_size = ImGui::GetWindowSize();
+
+                if (ImGui::Button("Building", ImVec2(ActionBar_ButtonSize, ActionBar_ButtonSize)))
                 {
-                    ImGui::PopStyleColor();
+                    UI_PANEL_TOGGLE(mUIPanelFlags, UIPanelBuilding);
+                    if (UI_PANEL_IS_OPEN(mUIPanelFlags, UIPanelBuilding)) UI_PANEL_OPEN_ONLY(mUIPanelFlags, UIPanelBuilding);
                 }
 
                 ImGui::SameLine();
-                ImGui::Text("-");
-                ImGui::SameLine();
 
-                // show cost
-                std::string costStr;
-                for (size_t i = 0; i < def.Cost.Resources.size(); i++)
+                if (ImGui::Button("Economy", ImVec2(ActionBar_ButtonSize, ActionBar_ButtonSize)))
                 {
-                    const auto& cost = def.Cost.Resources[i];
-                    bool hasEnough = mResourceManager->HasResource(cost.Type, cost.Amount);
-
-                    if (!hasEnough)
-                    {
-                        ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 0.3f, 0.3f, 1.0f));
-                    }
-
-                    ImGui::SameLine();
-                    ImGui::Text("%d %s", cost.Amount, ResourceTypeToString(cost.Type));
-
-                    if (!hasEnough)
-                    {
-                        ImGui::PopStyleColor();
-                    }
+                    UI_PANEL_TOGGLE(mUIPanelFlags, UIPanelEconomy);
+                    if (UI_PANEL_IS_OPEN(mUIPanelFlags, UIPanelEconomy)) UI_PANEL_OPEN_ONLY(mUIPanelFlags, UIPanelEconomy);
                 }
-
-                if (ImGui::IsItemHovered())
-                {
-                    ImGui::SetTooltip("%s", def.Description.c_str());
-                }
-
-                ImGui::PopID();
             }
+            ImGui::End();
         }
 
-        ImGui::Separator();
-        ImGui::Text("buildings: %zu", mBuildingManager->GetAllBuildings().size());
-
-        ImGui::End();
-    }
-
-    void GameLayer::RenderResourceDisplay()
-    {
-        ImGui::SetNextWindowPos(ImVec2(10, 10), ImGuiCond_FirstUseEver);
-        ImGui::Begin("resources", nullptr, ImGuiWindowFlags_AlwaysAutoResize);
-
-        ImGui::Text("wood:  %d", mResourceManager->GetResourceAmount(ResourceType::Wood));
-        ImGui::Text("stone: %d", mResourceManager->GetResourceAmount(ResourceType::Stone));
-        ImGui::Text("food:  %d", mResourceManager->GetResourceAmount(ResourceType::Food));
-        ImGui::Text("gold:  %d", mResourceManager->GetResourceAmount(ResourceType::Gold));
-        ImGui::Text("iron:  %d", mResourceManager->GetResourceAmount(ResourceType::Iron));
-
-        ImGui::Separator();
-
-        if (ImGui::Button("add resources (cheat)"))
+        void GameLayer::DrawBuildingPanel(ImVec2 action_bar_pos, ImVec2 action_bar_size, ImVec2* out_pos, ImVec2* out_size)
         {
-            mResourceManager->AddResource(ResourceType::Wood, 100);
-            mResourceManager->AddResource(ResourceType::Stone, 50);
-            mResourceManager->AddResource(ResourceType::Food, 100);
-            mResourceManager->AddResource(ResourceType::Gold, 10);
-            mResourceManager->AddResource(ResourceType::Iron, 20);
-        }
+            ImGuiViewport* viewport = ImGui::GetMainViewport();
 
-        ImGui::End();
-    }
+            ImVec2 pos(action_bar_pos.x, action_bar_pos.y + action_bar_size.y);
+            ImGui::SetNextWindowPos(pos, ImGuiCond_Always, ImVec2(1.0f, 1.0f));
 
-    void GameLayer::RenderDebugInfo()
-    {
-        ImGui::SetNextWindowPos(ImVec2(ImGui::GetIO().DisplaySize.x - 280, 10), ImGuiCond_FirstUseEver);
-        ImGui::Begin("Debug Info");
+            ImVec2 size(action_bar_pos.x - viewport->Pos.x, BuildingPanel_Height);
+            ImGui::SetNextWindowSize(size, ImGuiCond_Always);
 
-        ImGui::Text("FPS: %.1f (%.2f ms)", ImGui::GetIO().Framerate, 1000.0f / ImGui::GetIO().Framerate);
+            ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoNav
+                                          | ImGuiWindowFlags_NoTitleBar
+                                          | ImGuiWindowFlags_NoResize
+                                          | ImGuiWindowFlags_NoMove
+                                          | ImGuiWindowFlags_NoSavedSettings
+                                          | ImGuiWindowFlags_NoBackground
+                                          | ImGuiWindowFlags_NoDecoration
+                                          | ImGuiWindowFlags_NoBringToFrontOnFocus;
 
-        auto cameraPos = mCameraController.GetCamera().GetPosition();
-        ImGui::Text("camera: (%.1f, %.1f, %.1f)", cameraPos.x, cameraPos.y, cameraPos.z);
-
-        ImGui::Separator();
-
-        if (mHoveredHex.has_value())
-        {
-            ImGui::TextColored(ImVec4(1.0f, 1.0f, 0.0f, 1.0f), "hover: (%d, %d)", mHoveredHex.value().q, mHoveredHex.value().r);
-        }
-
-        if (mSelectionManager->HasSelection())
-        {
-            auto selected = mSelectionManager->GetSelectedHex();
-            ImGui::Text("selected: (%d, %d)", selected.q, selected.r);
-
-            auto* building = mBuildingManager->GetBuildingAt(selected);
-            if (building)
+            ImGui::Begin("BuildingPanel", nullptr, window_flags);
             {
-                ImGui::Text("building: %s", building->GetName().c_str());
-            }
-        }
+                *out_pos = ImGui::GetWindowPos();
+                *out_size = ImGui::GetWindowSize();
 
-        ImGui::Separator();
+                ImGuiChildFlags child_flags = ImGuiChildFlags_AlwaysUseWindowPadding;
 
-        ImGui::Text("controls:");
-        ImGui::BulletText("WASD - move camera");
-        ImGui::BulletText("Q/E - move up/down");
-        ImGui::BulletText("Right Mouse - rotate");
-        ImGui::BulletText("Left Click - select/place");
-        ImGui::BulletText("ESC - cancel placement");
-
-        ImGui::End();
-    }
-
-    void GameLayer::UpdateHoveredHex()
-    {
-        auto& window = Application::Get().GetWindow();
-        auto mousePos = Input::GetMousePosition();
-
-        mHoveredHex = mSelectionManager->GetHexAtScreenPosition(
-            mousePos.x, mousePos.y,
-            window.GetWidth(), window.GetHeight(),
-            mCameraController.GetCamera(),
-            *mHexMap
-        );
-
-        if (mSelectionManager->IsInPlacementMode() && mHoveredHex.has_value())
-        {
-            mGhostBuildingValid = mBuildingManager->CanPlaceBuilding(
-                mSelectionManager->GetPlacementType(),
-                mHoveredHex.value()
-            );
-
-            auto* def = mBuildingManager->GetBuildingDefinition(mSelectionManager->GetPlacementType());
-            if (def)
-            {
-                for (const auto& cost : def->Cost.Resources)
+                ImGui::PushStyleColor(ImGuiCol_ChildBg, IM_COL32(51, 50, 33, 255));
+                ImGui::BeginChild("BuildingPanelBG", ImVec2(0.0f, 0.0f), child_flags);
                 {
-                    if (!mResourceManager->HasResource(cost.Type, cost.Amount))
+                    f32 button_size = BuildingPanel_ThumbnailSize;
+                    f32 spacing = ImGui::GetStyle().ItemSpacing.x;
+                    f32 avail_width = ImGui::GetContentRegionAvail().x;
+                    int columns = static_cast<int>((avail_width + spacing) / (button_size + spacing));
+                    columns = std::max(3, columns);
+
+                    ImGuiTableFlags table_flags = ImGuiTableFlags_SizingStretchSame;
+
+                    if (ImGui::BeginTable("BuildGrid", columns, table_flags))
                     {
-                        mGhostBuildingValid = false;
-                        break;
+                        i32 cell_index = 0;
+
+                        for (u8 i = 0; i < static_cast<u8>(BuildingType::Count); ++i)
+                        {
+                            BuildingType type = static_cast<BuildingType>(i);
+                            const auto& definition = GetBuildingDefinition(type);
+
+                            if (cell_index % columns == 0)
+                                ImGui::TableNextRow();
+
+                            ImGui::TableNextColumn();
+
+                            // Thumbnail
+                            u32 thumbnail_id = ThumbnailGenerator::GetThumbnail(definition.ModelPath);
+                            ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(0, 0));
+                            if (ImGui::ImageButton(
+                                definition.Name,
+                                thumbnail_id,
+                                ImVec2(button_size, button_size),
+                                ImVec2(0, 1), ImVec2(1, 0),
+                                ImGui::ColorConvertU32ToFloat4(IM_COL32(125, 127, 102, 255))
+                            ))
+                            {
+                                if (UI_PANEL_IS_OPEN(mUIPanelFlags, UIPanelBuildConfirm) && mSelectedBuildingToConfirm == type)
+                                {
+                                    UI_PANEL_CLOSE(mUIPanelFlags, UIPanelBuildConfirm);
+                                }
+                                else
+                                {
+                                    UI_PANEL_OPEN(mUIPanelFlags, UIPanelBuildConfirm);
+                                    mSelectedBuildingToConfirm = type;
+                                }
+                            }
+                            ImGui::PopStyleVar();
+
+                            // Label
+                            f32 name_length = ImGui::CalcTextSize(definition.Name).x;
+                            f32 offset = ((button_size - name_length) / 2.0f);
+                            ImGui::SetCursorPosX(ImGui::GetCursorPosX() + offset);
+                            ImGui::Text("%s", definition.Name);
+
+                            cell_index++;
+                        }
+
+                        ImGui::EndTable(); // BuildGrid
                     }
                 }
+                ImGui::EndChild();
+                ImGui::PopStyleColor();
             }
-
-            if (def && (!mGhostBuildingModel || mGhostBuildingModel.use_count() == 0))
-            {
-                try
-                {
-                    mGhostBuildingModel = CreateRef<Model>(def->ModelPath);
-                }
-                catch (...)
-                {
-                    RF_WARN("failed to load ghost building model");
-                }
-            }
+            ImGui::End(); // BuildPanel
         }
-    }
 
-    void GameLayer::DrawHexHighlight(const HexCoordinate& coord, const glm::vec3& color, f32 elevation)
-    {
-        if (!mHexHighlightModel) return;
+        // =========== UI Design idea ===========
+        // ┌────────────────────────────────────┐
+        // │ ┌───────────┐                      │
+        // │ │           │  Name                │
+        // │ │ Thumbnail │  Description         │
+        // │ │           │                      │
+        // │ └───────────┘                      │
+        // │                                    │
+        // │ ┌────┐ ┌────┐          ┌───────┐   │
+        // │ │ R1 │ │ R2 │          │ BUILD │   │
+        // │ └────┘ └────┘          │  BTN  │   │
+        // │   L1     L2            └───────┘   │
+        // └────────────────────────────────────┘
+        void GameLayer::DrawBuildConfirmPanel(ImVec2 building_panel_pos, ImVec2 building_panel_size)
+        {
+            if (!mSelectedBuildingToConfirm.has_value()) return;
 
-        glm::vec3 worldPos = coord.ToWorldPosition();
-        worldPos.y = elevation;
+            ImVec2 pos(building_panel_pos.x, building_panel_pos.y);
+            ImGui::SetNextWindowPos(pos, ImGuiCond_Always, ImVec2(0.0f, 1.0f));
 
-        glm::mat4 transform = glm::translate(glm::mat4(1.0f), worldPos);
-        transform = glm::scale(transform, glm::vec3(1.05f, 1.0f, 1.05f)); // Slightly larger
+            ImVec2 size(building_panel_size.x * 0.65f, BuildConfirmPanel_Height);
+            ImGui::SetNextWindowSize(size, ImGuiCond_Always);
 
-        RenderCommand::SetBlend(true);
-        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+            ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoNav
+                                          | ImGuiWindowFlags_NoTitleBar
+                                          | ImGuiWindowFlags_NoResize
+                                          | ImGuiWindowFlags_NoMove
+                                          | ImGuiWindowFlags_NoSavedSettings
+                                          | ImGuiWindowFlags_NoBackground
+                                          | ImGuiWindowFlags_NoDecoration
+                                          | ImGuiWindowFlags_NoBringToFrontOnFocus;
 
-        mHighlightShader->Bind();
-        mHighlightShader->SetFloat3("uHighlightColor", color);
-        mHighlightShader->SetFloat("uPulseIntensity", mPulseIntensity);
+            ImGui::Begin("BuildConfirmPanel", nullptr, window_flags);
+            {
+                ImVec2 build_confirm_panel_size = ImGui::GetWindowSize();
+                ImVec2 build_confirm_panel_pos = ImGui::GetWindowPos();
 
-        mHexHighlightModel->Draw(mHighlightShader, transform);
+                ImGuiChildFlags child_flags = ImGuiChildFlags_AlwaysUseWindowPadding;
 
-        RenderCommand::SetBlend(false);
-    }
+                ImGui::PushStyleColor(ImGuiCol_ChildBg, IM_COL32(51, 50, 33, 255));
+                ImGui::BeginChild("BuildConfirmPanelBG", ImVec2(0.0f, 0.0f), child_flags);
+                {
+                    ImVec2 confirm_button_size(build_confirm_panel_size.x * 0.15f, build_confirm_panel_size.x * 0.15f);
+                    ImVec2 resource_icon_size(build_confirm_panel_size.x * 0.125f, build_confirm_panel_size.x * 0.125f);
+                    ImVec2 thumbnail_size(92.0f, 92.0f);
 
-    void GameLayer::DrawGhostBuilding()
-    {
-        if (!mGhostBuildingModel || !mHoveredHex.has_value()) return;
+                    const auto& definition = GetBuildingDefinition(mSelectedBuildingToConfirm.value());
 
-        glm::vec3 worldPos = mHoveredHex.value().ToWorldPosition();
-        worldPos.y = 0.0f;
+                    // 1 Header
+                    {
+                        // 1.1 Thumbnail
+                        u32 thumbnail_id = ThumbnailGenerator::GetThumbnail(definition.ModelPath);
+                        ImVec2 cursor = ImGui::GetCursorScreenPos();
 
-        glm::mat4 transform = glm::translate(glm::mat4(1.0f), worldPos);
+                        ImGui::GetWindowDrawList()->AddRectFilled(
+                            cursor,
+                            ImVec2(cursor.x + thumbnail_size.x, cursor.y + thumbnail_size.y),
+                            IM_COL32(125, 127, 102, 255),
+                            3.0f
+                        );
+                        ImGui::Image(thumbnail_id, thumbnail_size, ImVec2(0, 1), ImVec2(1, 0));
 
-        RenderCommand::SetBlend(true);
+                        ImGui::SameLine();
 
-        mTranslucentShader->Bind();
-        mTranslucentShader->SetFloat3("uLightPos", glm::vec3(10.0f, 20.0f, 10.0f));
-        mTranslucentShader->SetFloat3("uLightColor", glm::vec3(1.0f, 1.0f, 1.0f));
-        mTranslucentShader->SetFloat3("uObjectColor", glm::vec3(0.5f, 0.7f, 1.0f));
-        mTranslucentShader->SetFloat("uAlpha", 0.5f);
-        mTranslucentShader->SetInt("uIsValid", mGhostBuildingValid ? 1 : 0);
+                        // 1.2 Info
+                        ImGui::BeginChild("BuildConfirmInfo", ImVec2(0, thumbnail_size.y));
+                        {
+                            ImGui::SetWindowFontScale(2.0f);
+                            ImGui::Text("%s", definition.Name);
+                            ImGui::SetWindowFontScale(1.0f);
 
-        mGhostBuildingModel->Draw(mTranslucentShader, transform);
+                            ImGui::PushTextWrapPos(ImGui::GetContentRegionAvail().x);
+                            ImGui::Text("%s", definition.Description);
+                            ImGui::PopTextWrapPos();
+                        }
+                        ImGui::EndChild();
+                    }
 
-        RenderCommand::SetBlend(false);
-    }
-} // namespace RF
+                    // 2 Footer
+                    if (ImGui::BeginTable("FooterLayout", 2, ImGuiTableFlags_SizingStretchProp))
+                    {
+                        ImGui::TableSetupColumn("Costs", ImGuiTableColumnFlags_WidthStretch);
+                        ImGui::TableSetupColumn("Button", ImGuiTableColumnFlags_WidthFixed, confirm_button_size.x);
+
+                        ImGui::TableNextRow();
+
+                        // 2.1 Resource
+                        ImGui::TableSetColumnIndex(0);
+                        {
+                            if (ImGui::BeginTable("CostList", static_cast<int>(ResourceType::Count), ImGuiTableFlags_SizingFixedFit))
+                            {
+                                auto cost = definition.ConstructionCost;
+
+                                for (auto [resource, amount] : cost)
+                                {
+                                    if (amount <= 0) continue;
+
+                                    ImGui::TableNextColumn();
+
+                                    ImVec2 cursor = ImGui::GetCursorScreenPos();
+                                    ImVec2 p_max(cursor + resource_icon_size);
+
+                                    // Icon
+                                    u32 res_tex_id = ThumbnailGenerator::GetThumbnail(ResourceTypeToThumbnailModelPath(resource), 2.5f);
+                                    ImGui::GetWindowDrawList()->AddRectFilled(
+                                        cursor,
+                                        p_max,
+                                        IM_COL32(22, 29, 18, 255),
+                                        5.0f
+                                    );
+                                    ImGui::Image(res_tex_id, resource_icon_size, ImVec2(0, 1), ImVec2(1, 0));
+
+                                    // Amount
+                                    char amount_str[16];
+                                    sprintf(amount_str, "%d", amount);
+                                    ImGui::SetWindowFontScale(0.9f);
+                                    ImVec2 text_size = ImGui::CalcTextSize(amount_str);
+                                    f32 padding = 4.0f;
+                                    ImVec2 text_pos = ImVec2(p_max.x - text_size.x - padding, p_max.y - text_size.y - padding);
+                                    ImGui::GetWindowDrawList()->AddText(text_pos, IM_COL32(255, 255, 255, 255), amount_str);
+
+                                    // Label
+                                    ImGui::SetWindowFontScale(0.8f);
+                                    ImGui::SetCursorPosY(ImGui::GetCursorPosY() - 8.0f); // Move up a little bit
+                                    f32 name_length = ImGui::CalcTextSize(ResourceTypeToString(resource)).x;
+                                    f32 offset = ((resource_icon_size.x - name_length) / 2.0f);
+                                    ImGui::SetCursorPosX(ImGui::GetCursorPosX() + offset);
+                                    ImGui::Text("%s", ResourceTypeToString(resource));
+                                    ImGui::SetWindowFontScale(1.0f);
+                                }
+
+                                ImGui::EndTable();
+                            }
+                        }
+
+                        // 2.2 Build
+                        ImGui::TableSetColumnIndex(1);
+                        {
+                            ImGui::PushStyleColor(ImGuiCol_Button, IM_COL32(87, 89, 41, 255));
+                            ImGui::PushStyleColor(ImGuiCol_ButtonHovered, IM_COL32(107, 109, 51, 255));
+                            ImGui::PushStyleColor(ImGuiCol_ButtonActive, IM_COL32(67, 69, 31, 255));
+
+                            if (ImGui::Button("BUILD", confirm_button_size))
+                            {
+                                UI_PANEL_CLOSE_ALL(mUIPanelFlags);
+                                EnterBuildMode(mSelectedBuildingToConfirm.value());
+                            }
+
+                            ImGui::PopStyleColor(3);
+                        }
+
+                        ImGui::EndTable();
+                    }
+                }
+                ImGui::EndChild();
+                ImGui::PopStyleColor();
+            }
+            ImGui::End();
+        }
+
+        void GameLayer::DrawEconomyPanel()
+        {
+            ImGuiViewport* viewport = ImGui::GetMainViewport();
+
+            ImVec2 pos(viewport->Pos.x + viewport->Size.x / 2.0f, viewport->Pos.y + viewport->Size.y / 2.0f);
+            ImGui::SetNextWindowPos(pos, ImGuiCond_Always, ImVec2(0.5f, 0.5f));
+
+            ImVec2 size(viewport->Size.x * EconomyPanel_WidthScale, viewport->Size.y * EconomyPanel_HeightScale);
+            ImGui::SetNextWindowSize(size, ImGuiCond_Always);
+
+            ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoNav
+                                          | ImGuiWindowFlags_NoTitleBar
+                                          | ImGuiWindowFlags_NoResize
+                                          | ImGuiWindowFlags_NoMove
+                                          | ImGuiWindowFlags_NoSavedSettings
+                                          | ImGuiWindowFlags_NoBackground
+                                          | ImGuiWindowFlags_NoDecoration
+                                          | ImGuiWindowFlags_NoBringToFrontOnFocus;
+
+            ImGui::Begin("EconomyPanel", nullptr, window_flags);
+            {
+                ImGuiChildFlags child_flags = ImGuiChildFlags_AlwaysUseWindowPadding;
+
+                ImGui::PushStyleColor(ImGuiCol_ChildBg, IM_COL32(26, 29, 20, 255));
+                ImGui::BeginChild("EconomyPanelBG", ImVec2(0.0f, 0.0f), child_flags);
+                {
+                    ImVec2 avail = ImGui::GetContentRegionAvail();
+
+                    ImGui::SetWindowFontScale(2.5f);
+                    ImVec2 text_size = ImGui::CalcTextSize("ECONOMY");
+                    ImGui::SetCursorPosX(ImGui::GetCursorPosX() + avail.x / 2.0f - text_size.x / 2.0f);
+                    ImGui::TextUnformatted("ECONOMY");
+
+                    /*
+                    ImGui::SameLine(-32.0f);
+                    if (ImGui::SmallButton("X"))
+                    {
+                        UI_PANEL_CLOSE(mUIPanelFlags, UIPanelEconomy);
+                    }
+                    */
+
+                    ImGui::Spacing();
+                    ImGui::Separator();
+                    ImGui::Spacing();
+
+                    ImGuiTableFlags table_flags = ImGuiTableFlags_RowBg
+                                                | ImGuiTableFlags_BordersInnerH
+                                                | ImGuiTableFlags_SizingStretchProp;
+                    if (ImGui::BeginTable("EconomyPanelTable", 3, table_flags))
+                    {
+                        ImGui::TableSetupColumn("Icon", ImGuiTableColumnFlags_WidthFixed, 32.0f);
+                        ImGui::TableSetupColumn("Resource");
+                        ImGui::TableSetupColumn("Amount", ImGuiTableColumnFlags_WidthFixed, 80.0f);
+
+                        for (u8 i = 0; i < static_cast<u8>(ResourceType::Count); i++)
+                        {
+                            ResourceType resource = static_cast<ResourceType>(i);
+                            i32 amount = Warehouse::Get().GetAmount(resource);
+
+                            ImGui::TableNextRow();
+
+                            // Icon
+                            ImGui::TableSetColumnIndex(0);
+                            u32 icon = ThumbnailGenerator::GetThumbnail(ResourceTypeToThumbnailModelPath(resource), 2.5f);
+                            ImGui::Image(icon, ImVec2(32.0f, 32.0f), ImVec2(0, 1), ImVec2(1, 0));
+
+                            // Name
+                            ImGui::SetWindowFontScale(1.5f);
+                            ImGui::TableSetColumnIndex(1);
+                            ImGui::Text(ResourceTypeToString(resource));
+
+                            // Amount
+                            ImGui::TableSetColumnIndex(2);
+                            ImGui::Text("%d", amount);
+                            ImGui::SetWindowFontScale(1.0f);
+                        }
+
+                        ImGui::EndTable();
+                    }
+                }
+                ImGui::EndChild();
+                ImGui::PopStyleColor();
+            }
+            ImGui::End();
+        }
+    } // namespace RealmFortress

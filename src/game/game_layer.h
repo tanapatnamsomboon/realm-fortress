@@ -6,16 +6,45 @@
 
 #pragma once
 
+#include "core/base.h"
 #include "core/layer.h"
-#include "game/hex_map.h"
-#include "game/building.h"
-#include "game/resource_type.h"
-#include "game/selection.h"
-#include "scene/camera_controller.h"
 #include "renderer/shader.h"
+#include "events/event.h"
+#include "events/mouse_event.h"
+#include "events/key_event.h"
+#include "game/system/camera_controller.h"
+#include "game/system/map.h"
+#include "game/system/picker.h"
+#include "game/system/selection.h"
+#include "game/resource/warehouse.h"
+#include "game/building/building_manager.h"
 
-namespace RF
+struct ImVec2;
+
+namespace RealmFortress
 {
+    enum class GameMode
+    {
+        Normal,
+        Building
+    };
+
+    enum UIPanelFlag : u16
+    {
+        UIPanelNone     = 0,
+        UIPanelBuilding = BIT(0),
+        UIPanelEconomy  = BIT(1),
+        UIPanelInspect  = BIT(2),
+        UIPanelBuildConfirm  = BIT(3),
+    };
+
+#   define UI_PANEL_IS_OPEN(flags, panel)   ((flags) & (panel))
+#   define UI_PANEL_OPEN(flags, panel)      ((flags) |= (panel))
+#   define UI_PANEL_OPEN_ONLY(flags, panel) ((flags) &= (panel))
+#   define UI_PANEL_CLOSE(flags, panel)     ((flags) &= ~(panel))
+#   define UI_PANEL_TOGGLE(flags, panel)    ((flags) ^= (panel))
+#   define UI_PANEL_CLOSE_ALL(flags)        ((flags) = 0)
+
     class GameLayer final : public Layer
     {
     public:
@@ -30,37 +59,50 @@ namespace RF
         void OnEvent(Event& event) override;
 
     private:
-        bool OnMouseButtonPressed(class MouseButtonPressedEvent& event);
-        bool OnMouseMoved(class MouseMovedEvent& event);
-        bool OnKeyPressed(class KeyPressedEvent& event);
+        bool OnMouseButtonPressed(MouseButtonPressedEvent& event);
+        bool OnMouseMoved(MouseMovedEvent& event);
+        bool OnKeyPressed(KeyPressedEvent& event);
 
-        void RenderBuildingMenu();
-        void RenderResourceDisplay();
-        void RenderDebugInfo();
+        void UpdateSelection();
 
-        void UpdateHoveredHex();
-        void DrawHexHighlight(const HexCoordinate& coord, const glm::vec3& color, f32 elevation = 0.05f);
+        void EnterBuildMode(BuildingType type);
+        void ExitBuildMode();
+        void PlaceBuildingAtSelection();
         void DrawGhostBuilding();
+        std::unordered_set<Coordinate> GetBuildableTiles() const;
+
+        // UI
+        void SetupTheme();
+
+        void DrawTimeHUD();
+        void DrawActionBar(ImVec2* out_pos, ImVec2* out_size);
+
+        void DrawBuildingPanel(ImVec2 action_bar_pos, ImVec2 action_bar_size, ImVec2* out_pos, ImVec2* out_size);
+        void DrawBuildConfirmPanel(ImVec2 building_panel_pos, ImVec2 building_panel_size);
+        void DrawEconomyPanel();
 
     private:
-        CameraController mCameraController;
-
+        ShaderLibrary mShaderLibrary;
         Ref<Shader> mShader;
         Ref<Shader> mHighlightShader;
-        Ref<Shader> mTranslucentShader;
 
-        Scope<HexMap> mHexMap;
-        Scope<BuildingManager> mBuildingManager;
-        Scope<ResourceManager> mResourceManager;
-        Scope<SelectionManager> mSelectionManager;
+        Ref<CameraController> mCameraController;
 
-        std::optional<HexCoordinate> mHoveredHex;
-        Ref<Model> mHexHighlightModel;
+        Map mMap;
 
-        Ref<Model> mGhostBuildingModel;
-        bool mGhostBuildingValid;
+        Picker mPicker;
+        Selection mSelection;
+        f32 mTime{ 0.0f };
 
-        f32 mTime;
-        f32 mPulseIntensity;
+        i16 mUIPanelFlags{ 0 };
+        std::optional<BuildingType> mSelectedBuildingToConfirm;
+
+        f32 mGameTime{ 0.0f };
+        i32 mGameDay{ 1 };
+        f32 mTimeSpeed{ 1.0f };
+
+        GameMode mGameMode{ GameMode::Normal };
+        BuildingType mSelectedBuildingType{ BuildingType::Mine };
+        Building* mInspectedBuilding{ nullptr };
     };
 }

@@ -13,7 +13,7 @@
 #include <glm/glm.hpp>
 #include <vector>
 
-namespace RF
+namespace RealmFortress
 {
     struct Vertex
     {
@@ -32,6 +32,7 @@ namespace RF
         const std::vector<Vertex>& GetVertices() const { return mVertices; }
         const std::vector<u32>& GetIndices() const { return mIndices; }
         const std::vector<Ref<Texture2D>>& GetTextures() const { return mTextures; }
+        Ref<VertexArray> GetVertexArray() const { return mVertexArray; }
 
     private:
         void SetupMesh();

@@ -15,7 +15,7 @@
 #include "events/application_event.h"
 #include "imgui/imgui_layer.h"
 
-namespace RF
+namespace RealmFortress
 {
     struct ApplicationCommandLineArgs
     {
@@ -78,4 +78,4 @@ namespace RF
     };
 
     Application* CreateApplication(const ApplicationCommandLineArgs& args);
-} // namespace RF
+} // namespace RealmFortress

@@ -6,7 +6,7 @@
 
 #include "material.h"
 
-namespace RF
+namespace RealmFortress
 {
     Material::Material(const Ref<Shader>& shader)
         : mShader(shader)
@@ -54,4 +54,4 @@ namespace RF
     {
         mFloat4s[name] = value;
     }
-} // namespace RF
+} // namespace RealmFortress

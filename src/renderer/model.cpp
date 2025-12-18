@@ -11,7 +11,7 @@
 #include <assimp/scene.h>
 #include <assimp/postprocess.h>
 
-namespace RF
+namespace RealmFortress
 {
     Model::Model(const std::string& path)
     {
@@ -33,9 +33,11 @@ namespace RF
             aiProcess_Triangulate |
             aiProcess_CalcTangentSpace |
             aiProcess_FlipUVs |
-            aiProcess_GenNormals |
+            aiProcess_GenSmoothNormals |
             aiProcess_ImproveCacheLocality |
-            aiProcess_JoinIdenticalVertices);
+            aiProcess_JoinIdenticalVertices |
+            aiProcess_OptimizeMeshes |
+            aiProcess_ValidateDataStructure);
 
         if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode)
         {
@@ -137,4 +139,4 @@ namespace RF
         }
         return textures;
     }
-} // namespace RF
+} // namespace RealmFortress

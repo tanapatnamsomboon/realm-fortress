@@ -6,12 +6,10 @@
 
 #pragma once
 
-#include "core/base.h"
 #include "core/timestep.h"
 #include "events/event.h"
-#include <vector>
 
-namespace RF
+namespace RealmFortress
 {
     class Layer
     {
@@ -30,4 +28,4 @@ namespace RF
     protected:
         std::string mDebugName;
     };
-} // namespace RF
+} // namespace RealmFortress

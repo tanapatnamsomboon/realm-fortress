@@ -10,7 +10,7 @@
 
 struct GLFWwindow;
 
-namespace RF
+namespace RealmFortress
 {
     class GraphicsContext
     {
@@ -23,4 +23,4 @@ namespace RF
     private:
         GLFWwindow* mWindow;
     };
-} // namespace RF
+} // namespace RealmFortress

@@ -10,7 +10,7 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
 
-namespace RF
+namespace RealmFortress
 {
     Texture2D::Texture2D(u32 width, u32 height)
         : mWidth(width), mHeight(height)
@@ -103,4 +103,4 @@ namespace RF
     {
         return CreateRef<Texture2D>(path);
     }
-} // namespace RF
+} // namespace RealmFortress

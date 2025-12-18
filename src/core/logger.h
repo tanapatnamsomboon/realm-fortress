@@ -9,7 +9,7 @@
 #include "core/base.h"
 #include <spdlog/spdlog.h>
 
-namespace RF
+namespace RealmFortress
 {
     class Logger
     {
@@ -23,16 +23,16 @@ namespace RF
         static Ref<spdlog::logger> sCoreLogger;
         static Ref<spdlog::logger> sClientLogger;
     };
-} // namespace RF
+} // namespace RealmFortress
 
-#define RF_CORE_TRACE(...)    ::RF::Logger::GetCoreLogger()->trace(__VA_ARGS__)
-#define RF_CORE_INFO(...)     ::RF::Logger::GetCoreLogger()->info(__VA_ARGS__)
-#define RF_CORE_WARN(...)     ::RF::Logger::GetCoreLogger()->warn(__VA_ARGS__)
-#define RF_CORE_ERROR(...)    ::RF::Logger::GetCoreLogger()->error(__VA_ARGS__)
-#define RF_CORE_CRITICAL(...) ::RF::Logger::GetCoreLogger()->critical(__VA_ARGS__)
+#define RF_CORE_TRACE(...)    ::RealmFortress::Logger::GetCoreLogger()->trace(__VA_ARGS__)
+#define RF_CORE_INFO(...)     ::RealmFortress::Logger::GetCoreLogger()->info(__VA_ARGS__)
+#define RF_CORE_WARN(...)     ::RealmFortress::Logger::GetCoreLogger()->warn(__VA_ARGS__)
+#define RF_CORE_ERROR(...)    ::RealmFortress::Logger::GetCoreLogger()->error(__VA_ARGS__)
+#define RF_CORE_CRITICAL(...) ::RealmFortress::Logger::GetCoreLogger()->critical(__VA_ARGS__)
 
-#define RF_TRACE(...)         ::RF::Logger::GetClientLogger()->trace(__VA_ARGS__)
-#define RF_INFO(...)          ::RF::Logger::GetClientLogger()->info(__VA_ARGS__)
-#define RF_WARN(...)          ::RF::Logger::GetClientLogger()->warn(__VA_ARGS__)
-#define RF_ERROR(...)         ::RF::Logger::GetClientLogger()->error(__VA_ARGS__)
-#define RF_CRITICAL(...)      ::RF::Logger::GetClientLogger()->critical(__VA_ARGS__)
+#define RF_TRACE(...)         ::RealmFortress::Logger::GetClientLogger()->trace(__VA_ARGS__)
+#define RF_INFO(...)          ::RealmFortress::Logger::GetClientLogger()->info(__VA_ARGS__)
+#define RF_WARN(...)          ::RealmFortress::Logger::GetClientLogger()->warn(__VA_ARGS__)
+#define RF_ERROR(...)         ::RealmFortress::Logger::GetClientLogger()->error(__VA_ARGS__)
+#define RF_CRITICAL(...)      ::RealmFortress::Logger::GetClientLogger()->critical(__VA_ARGS__)

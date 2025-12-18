@@ -10,7 +10,7 @@
 #include "core/timestep.h"
 #include "events/event.h"
 
-namespace RF
+namespace RealmFortress
 {
     class CameraController
     {
@@ -33,6 +33,9 @@ namespace RF
         f32 mFOV = 45.0f;
         f32 mNearClip = 0.1f;
         f32 mFarClip = 1000.0f;
+        f32 mYaw = 0.0f;
+        f32 mZoomLevel = 1.0f;
+        f32 mTargetZoomLevel = 1.0f;
 
         PerspectiveCamera mCamera;
 
@@ -45,4 +48,4 @@ namespace RF
         glm::vec2 mLastMousePosition = { 0.0f, 0.0f };
 
     };
-} // namespace RF
+} // namespace RealmFortress

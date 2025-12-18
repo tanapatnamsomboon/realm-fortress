@@ -9,7 +9,7 @@
 #include "core/base.h"
 #include "core/logger.h"
 
-namespace RF
+namespace RealmFortress
 {
     enum class ShaderDataType
     {
@@ -154,4 +154,4 @@ namespace RF
         u32 mRendererID;
         u32 mCount;
     };
-} // namespace RF
+} // namespace RealmFortress

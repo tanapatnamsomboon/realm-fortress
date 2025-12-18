@@ -6,10 +6,10 @@
 
 #include "layer.h"
 
-namespace RF
+namespace RealmFortress
 {
     Layer::Layer(const std::string& name)
         : mDebugName(name)
     {
     }
-} // namespace RF
+} // namespace RealmFortress

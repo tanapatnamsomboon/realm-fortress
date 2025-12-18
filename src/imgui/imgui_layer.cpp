@@ -12,7 +12,7 @@
 #include <imgui_impl_opengl3.h>
 #include <GLFW/glfw3.h>
 
-namespace RF
+namespace RealmFortress
 {
     ImGuiLayer::ImGuiLayer()
         : Layer("ImGuiLayer")
@@ -24,11 +24,16 @@ namespace RF
         IMGUI_CHECKVERSION();
         ImGui::CreateContext();
         ImGuiIO& io = ImGui::GetIO();
-        io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
+        // io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
         io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
-        io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
+        // io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
 
-        ImGui::StyleColorsDark();
+        ImGui::StyleColorsClassic();
+        // ImGui::StyleColorsDark();
+        // ImGui::StyleColorsLight();
+
+        f32 font_size = 18.0f;
+        io.Fonts->AddFontFromFileTTF("assets/fonts/mali/Mali-SemiBold.ttf", font_size, nullptr, io.Fonts->GetGlyphRangesThai());
 
         ImGuiStyle& style = ImGui::GetStyle();
         if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
@@ -86,4 +91,4 @@ namespace RF
             glfwMakeContextCurrent(backup_current_context);
         }
     }
-} // namespace RF
+} // namespace RealmFortress

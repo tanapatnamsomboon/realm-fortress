@@ -12,7 +12,7 @@
 #include "events/mouse_event.h"
 #include <GLFW/glfw3.h>
 
-namespace RF
+namespace RealmFortress
 {
     static u8 sGLFWWindowCount = 0;
 
@@ -52,6 +52,9 @@ namespace RF
         glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
         glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
         glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+
+        glfwWindowHint(GLFW_SAMPLES, 4);
+
 #       if defined(RF_PLATFORM_MAC)
             glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
 #       endif
@@ -180,4 +183,44 @@ namespace RF
         mData.mVSync = enabled;
         glfwSwapInterval(mData.mVSync ? 1 : 0);
     }
-} // namespace RF
+
+    void Window::SetFullscreen(bool enabled)
+    {
+        if (mData.mFullscreen == enabled)
+            return;
+
+        mData.mFullscreen = enabled;
+
+        if (enabled)
+        {
+            glfwGetWindowPos(mWindow, &mData.mWindowedPosX, &mData.mWindowedPosY);
+            glfwGetWindowSize(mWindow,
+                              reinterpret_cast<int*>(&mData.mWindowedWidth),
+                              reinterpret_cast<int*>(&mData.mWindowedHeight));
+
+            GLFWmonitor* monitor = glfwGetPrimaryMonitor();
+            const GLFWvidmode* mode = glfwGetVideoMode(monitor);
+
+            glfwSetWindowMonitor(mWindow, monitor, 0, 0, mode->width, mode->height, mode->refreshRate);
+
+            mData.mWidth = mode->width;
+            mData.mHeight = mode->height;
+
+            RF_CORE_INFO("Switched to fullscreen: {}x{}", mode->width, mode->height);
+        }
+        else
+        {
+            glfwSetWindowMonitor(mWindow, nullptr,
+                                 mData.mWindowedPosX, mData.mWindowedPosY,
+                                 mData.mWindowedWidth, mData.mWindowedHeight,
+                                 0);
+
+            mData.mWidth = mData.mWindowedWidth;
+            mData.mHeight = mData.mWindowedHeight;
+
+            RF_CORE_INFO("Switched to windowed: {}x{}", mData.mWidth, mData.mHeight);
+        }
+
+        SetVSync(mData.mVSync);
+    }
+} // namespace RealmFortress

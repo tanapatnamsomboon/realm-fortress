@@ -8,7 +8,7 @@
 #include "core/logger.h"
 #include <glad/gl.h>
 
-namespace RF
+namespace RealmFortress
 {
     static GLenum ShaderDataTypeToOpenGLBaseType(ShaderDataType type)
     {
@@ -51,14 +51,14 @@ namespace RF
         glBindVertexArray(0);
     }
 
-    void VertexArray::AddVertexBuffer(const Ref<VertexBuffer>& vertexBuffer)
+    void VertexArray::AddVertexBuffer(const Ref<VertexBuffer>& vertex_buffer)
     {
         RF_CORE_ASSERT(vertexBuffer->GetLayout().GetElements().size(), "Vertex Buffer has no layout!");
 
         glBindVertexArray(mRendererID);
-        vertexBuffer->Bind();
+        vertex_buffer->Bind();
 
-        const auto& layout = vertexBuffer->GetLayout();
+        const auto& layout = vertex_buffer->GetLayout();
         for (const auto& element : layout)
         {
             glEnableVertexAttribArray(mVertexBufferIndex);
@@ -71,19 +71,19 @@ namespace RF
             mVertexBufferIndex++;
         }
 
-        mVertexBuffers.push_back(vertexBuffer);
+        mVertexBuffers.push_back(vertex_buffer);
     }
 
-    void VertexArray::SetIndexBuffer(const Ref<IndexBuffer>& indexBuffer)
+    void VertexArray::SetIndexBuffer(const Ref<IndexBuffer>& index_buffer)
     {
         glBindVertexArray(mRendererID);
-        indexBuffer->Bind();
+        index_buffer->Bind();
 
-        mIndexBuffer = indexBuffer;
+        mIndexBuffer = index_buffer;
     }
 
     Ref<VertexArray> VertexArray::Create()
     {
         return CreateRef<VertexArray>();
     }
-} // namespace RF
+} // namespace RealmFortress

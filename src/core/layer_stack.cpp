@@ -7,7 +7,7 @@
 #include "core/pch.h"
 #include "layer_stack.h"
 
-namespace RF
+namespace RealmFortress
 {
     LayerStack::~LayerStack()
     {
@@ -51,4 +51,4 @@ namespace RF
             mLayers.erase(it);
         }
     }
-} // namespace RF
+} // namespace RealmFortress

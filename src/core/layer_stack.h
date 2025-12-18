@@ -9,7 +9,7 @@
 #include "core/base.h"
 #include "core/layer.h"
 
-namespace RF
+namespace RealmFortress
 {
     class LayerStack
     {
@@ -36,4 +36,4 @@ namespace RF
         std::vector<Layer*> mLayers;
         u32 mLayerInsertIndex = 0;
     };
-} // namespace RF
+} // namespace RealmFortress

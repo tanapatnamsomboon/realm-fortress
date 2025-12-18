@@ -10,7 +10,7 @@
 #define GLM_ENABLE_EXPERIMENTAL
 #include <glm/gtx/quaternion.hpp>
 
-namespace RF
+namespace RealmFortress
 {
     // Orthographic Camera
     OrthographicCamera::OrthographicCamera(f32 left, f32 right, f32 bottom, f32 top)
@@ -35,14 +35,14 @@ namespace RF
     }
 
     // Perspective Camera
-    PerspectiveCamera::PerspectiveCamera(f32 fov, f32 aspectRatio, f32 nearClip, f32 farClip)
+    PerspectiveCamera::PerspectiveCamera(f32 fov, f32 aspect_ratio, f32 near_clip, f32 far_clip)
     {
-        SetProjection(fov, aspectRatio, nearClip, farClip);
+        SetProjection(fov, aspect_ratio, near_clip, far_clip);
     }
 
-    void PerspectiveCamera::SetProjection(f32 fov, f32 aspectRatio, f32 nearClip, f32 farClip)
+    void PerspectiveCamera::SetProjection(f32 fov, f32 aspect_ratio, f32 near_clip, f32 far_clip)
     {
-        mProjection = glm::perspective(glm::radians(fov), aspectRatio, nearClip, farClip);
+        mProjection = glm::perspective(glm::radians(fov), aspect_ratio, near_clip, far_clip);
         mViewProjectionMatrix = mProjection * mViewMatrix;
     }
 
@@ -91,4 +91,4 @@ namespace RF
         mViewProjectionMatrix = mProjection * mViewMatrix;
     }
 
-} // namespace RF
+} // namespace RealmFortress

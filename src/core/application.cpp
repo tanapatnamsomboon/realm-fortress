@@ -11,7 +11,7 @@
 #include "renderer/renderer.h"
 #include <GLFW/glfw3.h>
 
-namespace RF
+namespace RealmFortress
 {
     Application* Application::sInstance = nullptr;
 
@@ -26,7 +26,7 @@ namespace RF
         Renderer::Init();
 
         mImGuiLayer = new ImGuiLayer();
-        PushLayer(mImGuiLayer);
+        PushOverlay(mImGuiLayer);
     }
 
     Application::~Application()
@@ -105,4 +105,4 @@ namespace RF
 
         return false;
     }
-} // namespace RF
+} // namespace RealmFortress

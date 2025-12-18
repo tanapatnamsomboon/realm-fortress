@@ -10,7 +10,7 @@
 #include <string>
 #include <sstream>
 
-namespace RF
+namespace RealmFortress
 {
     enum class EventType
     {
@@ -84,4 +84,4 @@ namespace RF
     private:
         Event& mEvent;
     };
-} // namespace RF
+} // namespace RealmFortress

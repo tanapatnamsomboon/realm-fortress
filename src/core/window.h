@@ -13,7 +13,7 @@
 
 struct GLFWwindow;
 
-namespace RF
+namespace RealmFortress
 {
     class GraphicsContext;
 
@@ -52,7 +52,11 @@ namespace RF
 
         void SetEventCallback(const EventCallbackFn& callback) { mData.mEventCallback = callback; }
         void SetVSync(bool enabled);
+        void SetFullscreen(bool enabled);
+        void ToggleFullscreen() { SetFullscreen(!IsFullscreen()); }
+
         bool IsVSync() const { return mData.mVSync; }
+        bool IsFullscreen() const { return mData.mFullscreen; }
 
         void* GetNativeWindow() const { return mWindow; }
 
@@ -68,10 +72,13 @@ namespace RF
         {
             std::string mTitle;
             u32 mWidth, mHeight;
+            u32 mWindowedWidth, mWindowedHeight;
+            i32 mWindowedPosX, mWindowedPosY;
             bool mVSync;
+            bool mFullscreen;
             EventCallbackFn mEventCallback;
         };
 
         WindowData mData;
     };
-} // namespace RF
+} // namespace RealmFortress
