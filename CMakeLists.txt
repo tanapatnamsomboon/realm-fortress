@@ -185,6 +185,10 @@ add_custom_command(TARGET realm-fortress POST_BUILD
 
 source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} FILES ${REALM_FORTRESS_SOURCES})
 
+set_target_properties(realm-fortress PROPERTIES
+        WIN32_EXECUTABLE TRUE
+)
+
 message(STATUS "===========================================")
 message(STATUS "Realm Fortress Configuration")
 message(STATUS "===========================================")
