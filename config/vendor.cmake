@@ -101,7 +101,7 @@ target_include_directories(imgui PUBLIC
         ${imgui_SOURCE_DIR}/backends
 )
 
-target_link_libraries(imgui PRIVATE glfw glad)
+target_link_libraries(imgui PRIVATE glfw glad OpenGL::GL)
 
 if (UNIX AND NOT APPLE)
     target_link_libraries(imgui PRIVATE ${X11_LIBRARIES})

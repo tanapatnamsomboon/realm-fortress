@@ -14,6 +14,7 @@
 #include <functional>
 #include <chrono>
 #include <thread>
+#include <ranges>
 
 // Data structure
 #include <string>

@@ -135,6 +135,8 @@ set(REALM_FORTRESS_SOURCES
 
 add_executable(realm-fortress ${REALM_FORTRESS_SOURCES})
 
+find_package(OpenGL REQUIRED)
+
 target_link_libraries(realm-fortress PRIVATE
         glad
         glfw
@@ -143,6 +145,7 @@ target_link_libraries(realm-fortress PRIVATE
         spdlog
         assimp
         stb
+        OpenGL::GL
 )
 
 target_include_directories(realm-fortress PRIVATE
